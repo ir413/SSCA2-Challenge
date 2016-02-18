@@ -1,4 +1,5 @@
 *.o
 *.swp
 *.a
-SSCA2v2.2/SSCA2
+cpu/SSCA2v2.2/SSCA2
+gpu/SSCA2
