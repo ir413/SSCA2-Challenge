@@ -2,7 +2,13 @@ include Makefile.var
 
 TARGET = SSCA2
 
-all: sprng
+OBJS = main.o
+
+all: sprng $(OBJS)
+	$(LD) $(LDFLAGS) $(GENCODE_FLAGS) -o $(TARGET) $(OBJS) $(LIB)
+
+main.o: main.cu
+	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
 sprng:
 	(cd sprng2.0; $(MAKE); cd ..)
@@ -10,4 +16,5 @@ sprng:
 cleansprng:
 	(cd sprng2.0; $(MAKE) clean; cd ..)
 
-clean: cleansprng
+clean:  cleansprng
+	rm -f *.o *~ $(TARGET)

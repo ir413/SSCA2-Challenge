@@ -1,29 +1,20 @@
-# Set the C compiler and flags appropriately
-# Compiler          64-bit compilation  OpenMP support  Suggested Opt. flags
-############################################################################
-# Generic gcc         -m64                -fopenmp        -O3
-# IBM     xlc_r       -q64                -xopenmp        -O3 -qhot
-# Intel   icc                             -qsmp=omp       -O3 -ipo
-# Sun     cc          -xarch=v9           -openmp         -fast
-############################################################################
-# To run problem instances of SCALE > 27, compile in 64-bit mode and add 
-# the flag -DLARGE_GRAPH to CFLAGS
-# To run problem instances of SCALE > 31, compile in 64-bit mode and add
-# the flag -DMASSIVE_GRAPH to CFLAGS
-# OpenMP is supported with gcc version >= 4.2
-# To verify Kernel 4 implementation, compile with -DVERIFYK4 flag. This 
-# will generate a 2D torus as the input instance instead of the scale-free graph.
+# Set the C compiler and flags.
 CC = gcc
-CFLAGS = -O2 -fopenmp
+CFLAGS = -O2 #-fopenmp
 
+# Set flags for spring2.0.
 AR = ar
 ARFLAGS = cr
 RANLIB = ranlib
 
-# Spring2.0.
-#LIB = -Lsprng2.0/lib -lm -lsprng # required for -DVERIFYK4
-LIB = -Lsprng2.0/lib -lsprng # removing -lm for simplescalar - not needed 
+LIB = -Lsprng2.0/lib -lm -lsprng # -lm required for -DVERIFYK4
 INC = -Isprng2.0/include
 
-# TODO: CUDA vars. 
+# Set CUDA compiler and flags.
+NVCC = nvcc
+NVCCFLAGS =
+GENCODE_FLAGS =
 
+# Set linker and flags.
+LD = nvcc
+LDFLAGS =
