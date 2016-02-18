@@ -2,12 +2,16 @@ include Makefile.var
 
 TARGET = SSCA2
 
-OBJS = main.o
+OBJS = main.o \
+       PrefixSums.o
 
 all: sprng $(OBJS)
 	$(LD) $(LDFLAGS) $(GENCODE_FLAGS) -o $(TARGET) $(OBJS) $(LIB)
 
 main.o: main.cu
+	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
+
+PrefixSums.o: PrefixSums.cu PrefixSums.h
 	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
 sprng:
