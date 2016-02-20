@@ -3,7 +3,7 @@
 #include "Timer.h"
 
 
-double get_seconds()
+double getSeconds()
 {
   struct timeval tp;
   gettimeofday(&tp, NULL);

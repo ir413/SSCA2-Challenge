@@ -1,6 +1,8 @@
 #ifndef GPU_SCALABLE_DATA_GENERATION_H
 #define GPU_SCALABLE_DATA_GENERATION_H
 
+#include "Configuration.h"
+
 
 /**
  * Represents tuples of scalably generated data.
@@ -15,11 +17,11 @@ typedef struct
   int *startVertex;
   int *endVertex;
   int *weight;
-} graphSDG;
+} GraphSDG;
 
 /**
  * Generates tuples. 
  */
-double generateScalableData(graphSDG *tuples);
+double generateScalableData(Configuration *config, int *permV, GraphSDG *tuples);
 
 #endif // gpu/ScalableDataGeneration.h

@@ -37,8 +37,8 @@ PrefixSums.o: PrefixSums.cu PrefixSums.h
 PrefixSumsTest.o: PrefixSumsTest.cu PrefixSums.h
 	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
-ScalableDataGeneration.o: ScalableDataGeneration.cu ScalableDataGeneration.h
-	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
+ScalableDataGeneration.o: ScalableDataGeneration.cu ScalableDataGeneration.h Configuration.h
+	$(NVCC) $(INC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
 Timer.o: Timer.cu Timer.h
 	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
