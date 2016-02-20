@@ -4,6 +4,6 @@
 /**
  * Computes the prefix sums of the data.
  */
-void prefixSums(int *data, int *sums, size_t size); 
+void prefixSums(int *data, int *sums, int n); 
 
 #endif // gpu/PrefixSums.h

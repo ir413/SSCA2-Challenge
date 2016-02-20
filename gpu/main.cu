@@ -1,19 +1,8 @@
 #include <assert.h>
 #include <stdio.h>
 
-/**
- * Adds two vectors.
- */
-__global__ void
-vectorAdd(const float *a, const float *b, float *c, size_t size)
-{
-  size_t i = threadIdx.x;
+#include "PrefixSums.h"
 
-  if (i < size)
-  {
-    c[i] = a[i] + b[i];
-  }
-}
 
 /**
  * Entry point.
@@ -21,37 +10,33 @@ vectorAdd(const float *a, const float *b, float *c, size_t size)
 int
 main(int argc, char **argv)
 {
-  size_t size = 100;
-  
-  float *a;
-  float *b;
-  float *c;
+  int n = 2048;
+
+  int *data;
+  int *sums;
 
   // Allocate memory.
-  cudaMallocManaged(&a, sizeof(float) * size);
-  cudaMallocManaged(&b, sizeof(float) * size);
-  cudaMallocManaged(&c, sizeof(float) * size);
+  cudaMallocManaged(&data, sizeof(int) * n);
+  cudaMallocManaged(&sums, sizeof(int) * n);
 
-  // Initialize a & b.
-  for (size_t i = 0; i < size; ++i)
+  // Initialize data.
+  for (int i = 0; i < n; ++i)
   {
-    a[i] = 1.0f;
-    b[i] = 1.0f; 
+    data[i] = 1; 
+    sums[i] = 0;
   }
 
-  vectorAdd<<<1, 100>>>(a, b, c, size);
-  cudaDeviceSynchronize();
+  prefixSums(data, sums, n);
 
   // Check the result.
-  for (size_t i = 0; i< size; ++i)
+  for (int i = 0; i < n; ++i)
   {
-    assert(abs(c[i] - 2.0f) < 0.0001f);
+    assert(sums[i] == i);
   }
 
   // Clean up.
-  cudaFree(c);
-  cudaFree(b);
-  cudaFree(a);
+  cudaFree(sums);
+  cudaFree(data);
 }
 
 
