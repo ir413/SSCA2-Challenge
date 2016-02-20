@@ -15,7 +15,7 @@ HEADERS = Configuration.h \
 
 TEST_HEADERS = PrefixSums.h
 
-all: sprng $(OBJS) $(HEADERS)
+all: Makefile sprng $(OBJS) $(HEADERS)
 	$(LD) $(LDFLAGS) $(GENCODE_FLAGS) -o $(TARGET) $(OBJS) $(LIB)
 
 test: $(TEST_OBJS) $(TEST_HEADERS) 
@@ -24,8 +24,8 @@ test: $(TEST_OBJS) $(TEST_HEADERS)
 main.o: main.cu
 	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
-Configuration.o: Configuration.c Configuration.h
-	$(CC) $(CCFLAGS) -o $@ -c $<
+Configuration.o: Configuration.cu Configuration.h
+	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
 PrefixSums.o: PrefixSums.cu PrefixSums.h
 	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<

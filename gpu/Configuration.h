@@ -5,7 +5,7 @@
  * Benchmark configuration.
  * Constants used for data generation and subsequent kernels.
  */
-struct Configuration {
+typedef struct {
   // Binary scaling heuristic parameter.
   int scale;
   // Number of vertices.
@@ -23,8 +23,8 @@ struct Configuration {
   double b;
   double c;
   double d; 
-};
+} Configuration;
 
-void configure(int scale, struct Configuration *c);
+void configure(int scale, Configuration *config);
 
 #endif // gpu/Configuration.h
