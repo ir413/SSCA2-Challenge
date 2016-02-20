@@ -5,7 +5,8 @@
  * Benchmark configuration.
  * Constants used for data generation and subsequent kernels.
  */
-typedef struct {
+typedef struct
+{
   // Binary scaling heuristic parameter.
   int scale;
   // Number of vertices.

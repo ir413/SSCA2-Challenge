@@ -5,13 +5,15 @@ TEST_TARGET = tests
 
 OBJS = main.o \
        Configuration.o \
-       PrefixSums.o
+       PrefixSums.o \
+       ScalableDataGeneration.o
 
 TEST_OBJS = PrefixSums.o \
 	    PrefixSumsTest.o
 
 HEADERS = Configuration.h \
-	  PrefixSums.h
+	  PrefixSums.h \
+	  ScalableDataGeneration.h
 
 TEST_HEADERS = PrefixSums.h
 
@@ -31,6 +33,9 @@ PrefixSums.o: PrefixSums.cu PrefixSums.h
 	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
 PrefixSumsTest.o: PrefixSumsTest.cu PrefixSums.h
+	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
+
+ScalableDataGeneration.o: ScalableDataGeneration.cu ScalableDataGeneration.h
 	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
 sprng:

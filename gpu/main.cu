@@ -19,5 +19,6 @@ int main(int argc, char **argv)
   Configuration config;
   configure(atoi(argv[1]), &config);
 
-  printf("derp derp\n");
+  fprintf(stderr, "Scalable Data Generation...\n");
+  // TODO.
 }
