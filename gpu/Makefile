@@ -1,17 +1,36 @@
 include Makefile.var
 
 TARGET = SSCA2
+TEST_TARGET = tests
 
 OBJS = main.o \
+       Configuration.o \
        PrefixSums.o
 
-all: sprng $(OBJS)
+TEST_OBJS = PrefixSums.o \
+	    PrefixSumsTest.o
+
+HEADERS = Configuration.h \
+	  PrefixSums.h
+
+TEST_HEADERS = PrefixSums.h
+
+all: sprng $(OBJS) $(HEADERS)
 	$(LD) $(LDFLAGS) $(GENCODE_FLAGS) -o $(TARGET) $(OBJS) $(LIB)
+
+test: $(TEST_OBJS) $(TEST_HEADERS) 
+	$(LD) $(LDFLAGS) $(GENCODE_FLAGS) -o $(TEST_TARGET) $(TEST_OBJS) 
 
 main.o: main.cu
 	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
+Configuration.o: Configuration.c Configuration.h
+	$(CC) $(CCFLAGS) -o $@ -c $<
+
 PrefixSums.o: PrefixSums.cu PrefixSums.h
+	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
+
+PrefixSumsTest.o: PrefixSumsTest.cu PrefixSums.h
 	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
 sprng:
@@ -21,4 +40,4 @@ cleansprng:
 	(cd sprng2.0; $(MAKE) clean; cd ..)
 
 clean:  cleansprng
-	rm -f *.o *~ $(TARGET)
+	rm -f *.o *~ $(TARGET) $(TEST_TARGET)
