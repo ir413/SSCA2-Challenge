@@ -1,6 +1,8 @@
 #ifndef GPU_GRAPH_H
 #define GPU_GRAPH_H
 
+#include <stdio.h>
+
 #include "ScalableDataGeneration.h"
 
 

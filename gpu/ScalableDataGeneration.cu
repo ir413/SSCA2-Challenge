@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 #include "sprng.h"
 
 #include "ScalableDataGeneration.h"

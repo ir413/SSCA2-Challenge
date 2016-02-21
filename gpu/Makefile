@@ -4,6 +4,7 @@ TARGET = SSCA2
 TEST_TARGET = tests
 
 OBJS = main.o \
+       BetweennessCentrality.o \
        Configuration.o \
        Graph.o \
        PrefixSums.o \
@@ -14,7 +15,8 @@ OBJS = main.o \
 TEST_OBJS = PrefixSums.o \
 	    PrefixSumsTest.o
 
-HEADERS = Configuration.h \
+HEADERS = BetweennessCentrality.h \
+          Configuration.h \
 	  Graph.h \
 	  PrefixSums.h \
 	  ScalableDataGeneration.h \
@@ -31,6 +33,9 @@ test: $(TEST_OBJS) $(TEST_HEADERS)
 
 main.o: main.cu
 	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
+
+BetweennessCentrality.o: BetweennessCentrality.cu BetweennessCentrality.h Graph.h
+	$(NVCC) $(INC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
 Configuration.o: Configuration.cu Configuration.h
 	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<

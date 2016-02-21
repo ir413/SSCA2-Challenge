@@ -1,6 +1,8 @@
 #ifndef GPU_SCALABLE_DATA_GENERATION_H
 #define GPU_SCALABLE_DATA_GENERATION_H
 
+#include <stdio.h>
+
 #include "Configuration.h"
 
 
