@@ -8,7 +8,8 @@ OBJS = main.o \
        Graph.o \
        PrefixSums.o \
        ScalableDataGeneration.o \
-       Timer.o
+       Timer.o \
+       Validation.o
 
 TEST_OBJS = PrefixSums.o \
 	    PrefixSumsTest.o
@@ -17,7 +18,8 @@ HEADERS = Configuration.h \
 	  Graph.h \
 	  PrefixSums.h \
 	  ScalableDataGeneration.h \
-	  Timer.h
+	  Timer.h \
+	  Validation.h
 
 TEST_HEADERS = PrefixSums.h
 
@@ -46,6 +48,9 @@ ScalableDataGeneration.o: ScalableDataGeneration.cu ScalableDataGeneration.h Con
 	$(NVCC) $(INC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
 Timer.o: Timer.cu Timer.h
+	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
+
+Validation.o: Validation.cu Validation.h Configuration.h
 	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
 sprng:

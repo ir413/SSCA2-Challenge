@@ -5,6 +5,7 @@
 #include "Graph.h"
 #include "ScalableDataGeneration.h"
 #include "Timer.h"
+#include "Validation.h"
 
 
 /**
@@ -61,7 +62,7 @@ int main(int argc, char **argv)
   /* ----------------------------------------- */
   /* Kernel 1 - Graph Construction             */
   /* ----------------------------------------- */
-  fprintf(stderr, "Constructing the graph...\n");
+  fprintf(stderr, "Kernel 1: Constructing the graph...\n");
   elapsedTime = getSeconds();
 
   // Consturct the graph structure. 
@@ -92,7 +93,40 @@ int main(int argc, char **argv)
   /* ---------------------------------------- */
   // TODO
 
-  // Clean up the memory used to store the graph.
+  /* ---------------------------------------- */
+  /* Kernel 3 - Graph Extraction              */
+  /* ---------------------------------------- */
+  // TODO
+
+  /* ---------------------------------------- */
+  /* Kernel 4 - Betweenness Centrality        */
+  /* ---------------------------------------- */
+  fprintf(stderr, "Kernel 4: Computing Betweenness Centrality...\n");
+  elapsedTime = getSeconds();
+
+  // TODO
+  double *bc = (double *) calloc(config.n, sizeof(double));
+  assert(bc != NULL);
+
+  elapsedTime = getSeconds() - elapsedTime;
+  fprintf(stderr, "Time taken for Kernel 4 is %9.6lf sec.\n", elapsedTime);
+
+  /* ---------------------------------------- */
+  /* Validation                               */
+  /* ---------------------------------------- */
+  fprintf(stderr, "Validating the results...\n");
+
+  if (isValid(&config, bc))
+  {
+    fprintf(stderr, "Kernel 4 validation successful!\n");
+  }
+  else
+  {
+    fprintf(stderr, "Kernel 4 failed validation!\n");
+  }
+
+  // Clean up.
+  free(bc);
   free(graph.weight);
   free(graph.column);
   free(graph.rowOffset);
