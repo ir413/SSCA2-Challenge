@@ -28,6 +28,16 @@ typedef struct
   int *weight; 
 } Graph;
 
+
+/**
+ * Consturcts a graph from a list of tuples.
+ */ 
 void constructGraph(GraphSDG *tuples, Graph *graph);
+
+/**
+ * Prints the graph.
+ */
+void printGraph(FILE *stream, Graph *graph);
+
 
 #endif // gpu/Graph.h

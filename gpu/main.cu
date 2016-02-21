@@ -56,6 +56,8 @@ int main(int argc, char **argv)
       "Time taken for Scalable Data Generation is %9.6lf sec.\n",
       elapsedTime);
 
+  //printTuples(stderr, &tuples);
+
   /* ----------------------------------------- */
   /* Kernel 1 - Graph Construction             */
   /* ----------------------------------------- */
@@ -77,6 +79,8 @@ int main(int argc, char **argv)
 
   elapsedTime = getSeconds() - elapsedTime;
   fprintf(stderr, "Time taken for Kernel 1 is %9.6lf sec.\n", elapsedTime);
+
+  //printGraph(stderr, &graph);
 
   // Clean up the memory used to store generated data.
   free(tuples.weight);

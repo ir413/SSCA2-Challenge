@@ -52,3 +52,26 @@ void constructGraph(GraphSDG *tuples, Graph *graph)
   free(degree);
   free(pos);
 }
+
+void printGraph(FILE *stream, Graph *graph)
+{
+  fprintf(stream, "Row offsets:\n");
+  for (int i = 0; i < (graph->n + 1); ++i)
+  {
+    fprintf(stream, "%d ", graph->rowOffset[i]);
+  }
+
+  fprintf(stream, "\nAdjecency lists:\n");
+  for (int i = 0; i < graph->m; ++i)
+  {
+    fprintf(stream, "%d ", graph->column[i]);
+  }
+
+  fprintf(stream, "\nWeights:\n");
+  for (int i = 0; i < graph->m; ++i)
+  {
+    fprintf(stream, "%d ", graph->weight[i]);
+  }
+  fprintf(stream, "\n");
+}
+

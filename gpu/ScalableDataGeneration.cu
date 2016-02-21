@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "sprng.h"
 
 #include "ScalableDataGeneration.h"
@@ -127,3 +129,17 @@ void generateScalableData(Configuration *config, int *permV, GraphSDG *tuples)
   }
 }
 
+void printTuples(FILE *stream, GraphSDG *tuples)
+{
+  fprintf(stream, "Tuples:\n");
+
+  for (int i = 0; i < tuples->m; ++i)
+  {
+    fprintf(
+        stream,
+        "%d -> %d : %d\n",
+        tuples->startVertex[i],
+        tuples->endVertex[i],
+        tuples->weight[i]);
+  }
+}

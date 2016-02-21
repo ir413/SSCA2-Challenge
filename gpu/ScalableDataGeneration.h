@@ -19,9 +19,15 @@ typedef struct
   int *weight;
 } GraphSDG;
 
+
 /**
  * Generates tuples. 
  */
 void generateScalableData(Configuration *config, int *permV, GraphSDG *tuples);
+
+/**
+ * Prints generated tuples.
+ */
+void printTuples(FILE *stream, GraphSDG *tuples); 
 
 #endif // gpu/ScalableDataGeneration.h
