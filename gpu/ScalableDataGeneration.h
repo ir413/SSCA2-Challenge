@@ -22,6 +22,6 @@ typedef struct
 /**
  * Generates tuples. 
  */
-double generateScalableData(Configuration *config, int *permV, GraphSDG *tuples);
+void generateScalableData(Configuration *config, int *permV, GraphSDG *tuples);
 
 #endif // gpu/ScalableDataGeneration.h

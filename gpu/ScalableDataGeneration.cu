@@ -1,16 +1,13 @@
 #include "sprng.h"
 
-#include "Timer.h"
 #include "ScalableDataGeneration.h"
 
 
 /**
  * Port of the SSCA2v2.2 genScalData implementation. 
  */
-double generateScalableData(Configuration *config, int *permV, GraphSDG *tuples)
+void generateScalableData(Configuration *config, int *permV, GraphSDG *tuples)
 {
-  double startTime = getSeconds(); 
-
   int i, j, u, v, step, tmpVal;
   double av, bv, cv, dv, p, s, var;
 
@@ -128,7 +125,5 @@ double generateScalableData(Configuration *config, int *permV, GraphSDG *tuples)
   {
     tuples->weight[i] = 1 + config->maxIntWeight * sprng(stream);
   }
-
-  return getSeconds() - startTime;
 }
 

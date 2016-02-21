@@ -2,6 +2,7 @@
 
 #include "Configuration.h"
 #include "ScalableDataGeneration.h"
+#include "Timer.h"
 
 
 /**
@@ -29,6 +30,7 @@ int main(int argc, char **argv)
   /* Scalable Data Generation -- Untimed       */
   /* ------------------------------------------*/
   fprintf(stderr, "Scalable Data Generation...\n");
+  elapsedTime = getSeconds();
 
   // Allocate the tuples structure.
   GraphSDG tuples;
@@ -40,14 +42,16 @@ int main(int argc, char **argv)
   int *permV = (int *) malloc(config.m * sizeof(int));
 
   // Consturct the tuples.
-  elapsedTime = generateScalableData(&config, permV, &tuples);
+  generateScalableData(&config, permV, &tuples);
+
+  // Free the memory used for the temporary permV array.
+  free(permV);
+
+  elapsedTime = getSeconds() - elapsedTime;
   fprintf(
       stderr,
       "Time taken for Scalable Data Generation is %9.6lf sec.\n",
       elapsedTime);
-
-  // Free the memory used for the temporary permV array.
-  free(permV);
 
   /* ----------------------------------------- */
   /* Kernel 1 - Graph Construction             */
