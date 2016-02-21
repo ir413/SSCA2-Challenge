@@ -5,6 +5,7 @@ TEST_TARGET = tests
 
 OBJS = main.o \
        Configuration.o \
+       Graph.o \
        PrefixSums.o \
        ScalableDataGeneration.o \
        Timer.o
@@ -13,6 +14,7 @@ TEST_OBJS = PrefixSums.o \
 	    PrefixSumsTest.o
 
 HEADERS = Configuration.h \
+	  Graph.h \
 	  PrefixSums.h \
 	  ScalableDataGeneration.h \
 	  Timer.h
@@ -29,6 +31,9 @@ main.o: main.cu
 	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
 Configuration.o: Configuration.cu Configuration.h
+	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
+
+Graph.o: Graph.cu Graph.h ScalableDataGeneration.h PrefixSums.h
 	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
 PrefixSums.o: PrefixSums.cu PrefixSums.h
