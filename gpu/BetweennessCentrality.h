@@ -5,6 +5,14 @@
 #include "Graph.h"
 
 
+typedef struct
+{
+  int *list;
+  int count;
+  int degree;
+} plist;
+
+
 /**
  * Computes the Betweenness Centrality metric.
  */
