@@ -120,4 +120,7 @@ double betweennessCentrality(graph*, DOUBLE_T *);
 /* other useful routines */
 void prefix_sums(LONG_T*, LONG_T*, LONG_T*, LONG_T);
 DOUBLE_T get_seconds(void);
+void printTuples(FILE *stream, graphSDG *tuples);
+void printGraph(FILE *stream, graph *g);
+
 #endif

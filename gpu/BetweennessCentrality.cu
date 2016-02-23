@@ -1,4 +1,4 @@
-#include "sprng.h"
+#include <stdio.h>
 
 #include "BetweennessCentrality.h"
 
@@ -14,15 +14,6 @@ __global__ void computeBC(Graph *g, double *bc)
 
 void computeBetweennessCentrality(Configuration *config, Graph *g, double *bc)
 {
-  // Zero bc.
-  for (int i = 0; i < g->n; ++i)
-  {
-    bc[i] = 0.0;
-  }
-
-  // Stack of vertices in the order of non-decreasing
-  // distance from s. Represents the BFS queue implicitly.
-  //int *s;
   // Predecessoes of a vertex v on shortest paths from s.
   plist *p;
   int *pListMem;
@@ -75,7 +66,6 @@ void computeBetweennessCentrality(Configuration *config, Graph *g, double *bc)
   free(numEdges);
 
   // Allocate memory.
-  //s = (int *) malloc(g->n * sizeof(int));
   sigma = (double *) malloc(g->n * sizeof(double));
   d = (int *) malloc(g->n * sizeof(int));
   delta = (double *) calloc(g->n, sizeof(double));
@@ -93,13 +83,14 @@ void computeBetweennessCentrality(Configuration *config, Graph *g, double *bc)
     for (int k = 0; k < g->n; ++k)
     {
       d[k] = -1;
-      sigma[k] = 0;
+      sigma[k] = 0.0;
       p[k].count = 0;
+      delta[k] = 0.0;
     }
 
-    sigma[root] = 1;
+    sigma[root] = 1.0;
     d[root] = 0;
-    
+
     queue[qTail] = root;
     qTail++;
 
@@ -115,7 +106,17 @@ void computeBetweennessCentrality(Configuration *config, Graph *g, double *bc)
 
       for (int j = g->rowOffset[v]; j < g->rowOffset[v + 1]; ++j)
       {
+        // Skip edges whose weight is divisible by 8.
+        if ((g->weight[j] & 7) == 0)
+        {
+          continue;
+        }
+
         int w = g->column[j];
+
+        if (v == w) {
+          continue;
+        }
 
         // Not visited.
         if (d[w] == -1)
@@ -125,6 +126,10 @@ void computeBetweennessCentrality(Configuration *config, Graph *g, double *bc)
           qTail++;
           // Distance to w is distance to v + 1.
           d[w] = d[v] + 1;
+
+          sigma[w] = sigma[v];
+          p[w].list[p[w].count] = v;
+          p[w].count++;
         }
         else if (d[w] == (d[v] + 1))
         {
@@ -134,12 +139,6 @@ void computeBetweennessCentrality(Configuration *config, Graph *g, double *bc)
         }
       }
 
-    }
-
-    // zero delta.
-    for (int i = 0; i < g->n; ++i)
-    {
-      delta[i] = 0;
     }
 
     // While !empty(Stack)
@@ -152,8 +151,7 @@ void computeBetweennessCentrality(Configuration *config, Graph *g, double *bc)
       {
         // v = pred of w
         int v = p[w].list[k];
-
-        delta[v] = delta[v] + sigma[v] * (1 + delta[w]) / sigma[w];
+        delta[v] = delta[v] + (sigma[v] / sigma[w]) * (1.0 + delta[w]);
       }
 
       if (w != root)
@@ -163,6 +161,4 @@ void computeBetweennessCentrality(Configuration *config, Graph *g, double *bc)
     }
 
   }
-
-
 }

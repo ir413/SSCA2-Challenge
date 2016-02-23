@@ -61,3 +61,46 @@ void prefix_sums(LONG_T *input, LONG_T* result, LONG_T* p, LONG_T n) {
     
 }
 
+void printTuples(FILE *stream, graphSDG *tuples)
+{
+  int i;
+
+  fprintf(stream, "Tuples:\n");
+
+  for (i = 0; i < tuples->m; ++i)
+  {
+    fprintf(
+        stream,
+        "%d -> %d : %d\n",
+        tuples->startVertex[i],
+        tuples->endVertex[i],
+        tuples->weight[i]);
+  }
+}
+
+void printGraph(FILE *stream, graph *g)
+{
+  int i;
+
+  fprintf(stream, "Row offsets:\n");
+  for (i = 0; i < (g->n + 1); ++i)
+  {
+    fprintf(stream, "%d ", g->numEdges[i]);
+  }
+
+  fprintf(stream, "\nAdjecency lists:\n");
+  for (i = 0; i < g->m; ++i)
+  {
+    fprintf(stream, "%d ", g->endV[i]);
+  }
+
+  fprintf(stream, "\nWeights:\n");
+  for (i = 0; i < g->m; ++i)
+  {
+    fprintf(stream, "%d ", g->weight[i]);
+  }
+  fprintf(stream, "\n");
+}
+
+
+

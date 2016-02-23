@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 
+#include "BetweennessCentrality.h"
 #include "Configuration.h"
 #include "Graph.h"
 #include "ScalableDataGeneration.h"
@@ -107,6 +108,9 @@ int main(int argc, char **argv)
   // TODO
   double *bc = (double *) calloc(config.n, sizeof(double));
   assert(bc != NULL);
+
+  // Compute the betweenes centrality metric.
+  computeBetweennessCentrality(&config, &graph, bc);
 
   elapsedTime = getSeconds() - elapsedTime;
   fprintf(stderr, "Time taken for Kernel 4 is %9.6lf sec.\n", elapsedTime);
