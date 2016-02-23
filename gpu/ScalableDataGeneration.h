@@ -28,6 +28,11 @@ typedef struct
 void generateScalableData(Configuration *config, int *permV, GraphSDG *tuples);
 
 /**
+ * Generates a permutation of vertices.
+ */
+void generatePermutation(int n, int *permutation);
+
+/**
  * Prints generated tuples.
  */
 void printTuples(FILE *stream, GraphSDG *tuples); 

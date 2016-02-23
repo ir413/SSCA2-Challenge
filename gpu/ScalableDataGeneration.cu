@@ -127,6 +127,33 @@ void generateScalableData(Configuration *config, int *permV, GraphSDG *tuples)
   }
 }
 
+void generatePermutation(int n, int *permutation)
+{
+  int seed = 2387;
+  int tid = 0;
+  int nthreads = 1;
+
+  // Initialize RNG stream.
+  int *stream = init_sprng(0, tid, nthreads, seed, SPRNG_DEFAULT);
+
+  for (int i = 0; i < n; ++i)
+  {
+    permutation[i] = i;
+  }
+
+  for (int i = 0; i < n; ++i)
+  {
+    int j = n * sprng(stream);
+
+    if (i != j)
+    {
+      int k = permutation[i];
+      permutation[i] = permutation[j];
+      permutation[j] = k;
+    }
+  }
+}
+
 void printTuples(FILE *stream, GraphSDG *tuples)
 {
   fprintf(stream, "Tuples:\n");

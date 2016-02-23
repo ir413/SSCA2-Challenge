@@ -103,15 +103,21 @@ int main(int argc, char **argv)
   /* Kernel 4 - Betweenness Centrality        */
   /* ---------------------------------------- */
   fprintf(stderr, "Kernel 4: Computing Betweenness Centrality...\n");
-  elapsedTime = getSeconds();
-
-  // TODO
+  
+  // Allocating bc array and generating vertex permutations is not timed.
   double *bc = (double *) calloc(config.n, sizeof(double));
   assert(bc != NULL);
 
+  int *permutation = (int *) malloc(config.n * sizeof(int));
+  assert(permutation != NULL);
+  generatePermutation(config.n, permutation);
+
+  // Start timing.
+  elapsedTime = getSeconds();
+  
   // Compute the betweenes centrality metric.
   computeBetweennessCentrality(&config, &graph, bc);
-
+  
   elapsedTime = getSeconds() - elapsedTime;
   fprintf(stderr, "Time taken for Kernel 4 is %9.6lf sec.\n", elapsedTime);
 
@@ -130,6 +136,7 @@ int main(int argc, char **argv)
   }
 
   // Clean up.
+  free(permutation);
   free(bc);
   free(graph.weight);
   free(graph.column);
