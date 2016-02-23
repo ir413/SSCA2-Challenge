@@ -124,21 +124,23 @@ void computeBetweennessCentrality(Configuration *config, Graph *g, double *bc)
           // Enqueue w -> Q
           queue[qTail] = w;
           qTail++;
+        
           // Distance to w is distance to v + 1.
           d[w] = d[v] + 1;
 
           sigma[w] = sigma[v];
+          // Save the predecesor.
           p[w].list[p[w].count] = v;
           p[w].count++;
         }
         else if (d[w] == (d[v] + 1))
         {
           sigma[w] += sigma[v];
+          // Save the predecesor.
           p[w].list[p[w].count] = v;
           p[w].count++;
         }
       }
-
     }
 
     // While !empty(Stack)
