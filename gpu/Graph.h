@@ -45,7 +45,7 @@ void destroy(Graph *graph);
 /**
  * Consturcts a graph from a list of tuples.
  */ 
-void constructGraph(GraphSDG *tuples, Graph *graph);
+void constructGraph(TuplesSDG *tuples, Graph *graph);
 
 /**
  * Prints the graph.

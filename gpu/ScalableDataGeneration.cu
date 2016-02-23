@@ -5,7 +5,7 @@
 #include "ScalableDataGeneration.h"
 
 
-void allocate(Configuration *config, GraphSDG *tuples)
+void allocate(Configuration *config, TuplesSDG *tuples)
 {
   assert(config != NULL);
   assert(tuples != NULL);
@@ -23,7 +23,7 @@ void allocate(Configuration *config, GraphSDG *tuples)
   assert(tuples->weight != NULL);
 }
 
-void destroy(GraphSDG *tuples)
+void destroy(TuplesSDG *tuples)
 {
   assert(tuples != NULL);
 
@@ -35,7 +35,7 @@ void destroy(GraphSDG *tuples)
 /**
  * Port of the SSCA2v2.2 genScalData implementation. 
  */
-void generateScalableData(Configuration *config, GraphSDG *tuples)
+void generateScalableData(Configuration *config, TuplesSDG *tuples)
 {
   assert(config != NULL);
   assert(tuples != NULL);
@@ -191,7 +191,7 @@ void generatePermutation(int n, int *permutation)
   }
 }
 
-void printTuples(FILE *stream, GraphSDG *tuples)
+void printTuples(FILE *stream, TuplesSDG *tuples)
 {
   assert(stream != NULL);
   assert(tuples != NULL);

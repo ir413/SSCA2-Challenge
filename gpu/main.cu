@@ -38,7 +38,7 @@ int main(int argc, char **argv)
   elapsedTime = getSeconds();
 
   // Allocate memory required for the tuples.
-  GraphSDG tuples;
+  TuplesSDG tuples;
   allocate(&config, &tuples);
 
   // Generate the data.

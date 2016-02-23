@@ -30,7 +30,7 @@ void destroy(Graph *graph)
   free(graph->rowOffset);
 }
 
-void constructGraph(GraphSDG *tuples, Graph *graph)
+void constructGraph(TuplesSDG *tuples, Graph *graph)
 {
   assert(tuples != NULL);
   assert(graph != NULL);
