@@ -96,7 +96,7 @@ int main(int argc, char **argv)
   elapsedTime = getSeconds();
   
   // Compute the betweenes centrality metric.
-  computeBetweennessCentrality(&config, &graph, bc);
+  computeBCCPU(&config, &graph, bc);
   
   elapsedTime = getSeconds() - elapsedTime;
   fprintf(stderr, "Time taken for Kernel 4 is %9.6lf sec.\n", elapsedTime);

@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 
 #include "BetweennessCentrality.h"
@@ -12,9 +13,13 @@ __global__ void computeBC(Graph *g, double *bc)
 
 }
 
-void computeBetweennessCentrality(Configuration *config, Graph *g, double *bc)
+void computeBCCPU(Configuration *config, Graph *g, double *bc)
 {
-  // Predecessoes of a vertex v on shortest paths from s.
+  assert(config != NULL);
+  assert(g != NULL);
+  assert(bc != NULL);
+
+  // Predecessors of a vertex v on shortest paths from s.
   plist *p;
   int *pListMem;
 
