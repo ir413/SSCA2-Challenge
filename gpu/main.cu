@@ -132,7 +132,7 @@ int main(int argc, char **argv)
   }
   else
   {
-    fprintf(stderr, "Kernel 4 failed validation!\n");
+    fprintf(stderr, "Kernel 4 validation failed!\n");
   }
 
   // Clean up.
