@@ -23,9 +23,19 @@ typedef struct
 
 
 /**
+ * Allocates memory for the tuples.
+ */
+void allocate(Configuration *config, GraphSDG *tuples);
+
+/**
+ * Frees the memory occupied by the tuples.
+ */
+void destroy(GraphSDG *tuples);
+
+/**
  * Generates tuples. 
  */
-void generateScalableData(Configuration *config, int *permV, GraphSDG *tuples);
+void generateScalableData(Configuration *config, GraphSDG *tuples);
 
 /**
  * Generates a permutation of vertices.

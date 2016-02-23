@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 
+#include "Configuration.h"
 #include "ScalableDataGeneration.h"
 
 
@@ -30,6 +31,16 @@ typedef struct
   int *weight; 
 } Graph;
 
+
+/**
+ * Allocates memory for the graph.
+ */
+void allocate(Configuration *config, Graph *graph);
+
+/**
+ * Frees the memory occupied by the graph.
+ */
+void destroy(Graph *graph);
 
 /**
  * Consturcts a graph from a list of tuples.

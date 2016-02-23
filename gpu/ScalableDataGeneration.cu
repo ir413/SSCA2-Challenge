@@ -1,18 +1,47 @@
+#include <assert.h>
+
 #include "sprng.h"
 
 #include "ScalableDataGeneration.h"
 
 
-/**
- * Port of the SSCA2v2.2 genScalData implementation. 
- */
-void generateScalableData(Configuration *config, int *permV, GraphSDG *tuples)
+void allocate(Configuration *config, GraphSDG *tuples)
 {
-  int i, j, u, v, step, tmpVal;
-  double av, bv, cv, dv, p, s, var;
+  assert(config != NULL);
+  assert(tuples != NULL);
 
   tuples->n = config->n;
   tuples->m = config->m;
+
+  tuples->startVertex = (int *) malloc(tuples->m * sizeof(int));
+  assert(tuples->startVertex != NULL);
+
+  tuples->endVertex = (int *) malloc(tuples->m * sizeof(int));
+  assert(tuples->endVertex != NULL);
+
+  tuples->weight = (int *) malloc(tuples->m * sizeof(int)); 
+  assert(tuples->weight != NULL);
+}
+
+void destroy(GraphSDG *tuples)
+{
+  assert(tuples != NULL);
+
+  free(tuples->weight);
+  free(tuples->endVertex);
+  free(tuples->startVertex);
+}
+
+/**
+ * Port of the SSCA2v2.2 genScalData implementation. 
+ */
+void generateScalableData(Configuration *config, GraphSDG *tuples)
+{
+  assert(config != NULL);
+  assert(tuples != NULL);
+
+  int i, j, u, v, step, tmpVal;
+  double av, bv, cv, dv, p, s, var;
 
   // sprng seed.
   int seed = 2387;
@@ -94,12 +123,15 @@ void generateScalableData(Configuration *config, int *permV, GraphSDG *tuples)
     tuples->endVertex[i] = v - 1;
   }
 
+  // Allocate memory for storing permutations.
+  int *permV = (int *) malloc(tuples->m * sizeof(int));
+  assert(permV != NULL);
+
   // Generate vertex id permutations.
   for (i = 0; i < tuples->n; ++i)
   {
     permV[i] = i;
   }
-
 
   for (i = 0; i < tuples->n; ++i)
   {
@@ -119,6 +151,9 @@ void generateScalableData(Configuration *config, int *permV, GraphSDG *tuples)
     tuples->startVertex[i] = permV[tuples->startVertex[i]];
     tuples->endVertex[i] = permV[tuples->endVertex[i]];
   }
+  
+  // Free the memory occupied by permV.
+  free(permV);
 
   // Generate edge weights.
   for (i = 0; i < tuples->m; ++i)
@@ -129,6 +164,8 @@ void generateScalableData(Configuration *config, int *permV, GraphSDG *tuples)
 
 void generatePermutation(int n, int *permutation)
 {
+  assert(permutation != NULL);
+
   int seed = 2387;
   int tid = 0;
   int nthreads = 1;
@@ -156,6 +193,9 @@ void generatePermutation(int n, int *permutation)
 
 void printTuples(FILE *stream, GraphSDG *tuples)
 {
+  assert(stream != NULL);
+  assert(tuples != NULL);
+
   fprintf(stream, "Tuples:\n");
 
   for (int i = 0; i < tuples->m; ++i)

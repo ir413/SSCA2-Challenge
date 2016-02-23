@@ -37,20 +37,12 @@ int main(int argc, char **argv)
   fprintf(stderr, "Scalable Data Generation...\n");
   elapsedTime = getSeconds();
 
-  // Consturct the tuples structure.
+  // Allocate memory required for the tuples.
   GraphSDG tuples;
-  // Allocate memory required for the tuple arrays.
-  tuples.startVertex = (int *) malloc(config.m * sizeof(int));
-  tuples.endVertex = (int *) malloc(config.m * sizeof(int));
-  tuples.weight = (int *) malloc(config.m * sizeof(int));
-  // Allocate memory for the temporary permV array. 
-  int *permV = (int *) malloc(config.m * sizeof(int));
+  allocate(&config, &tuples);
 
-  // Consturct the tuples.
-  generateScalableData(&config, permV, &tuples);
-
-  // Free the memory used for the temporary permV array.
-  free(permV);
+  // Generate the data.
+  generateScalableData(&config, &tuples);
 
   elapsedTime = getSeconds() - elapsedTime;
   fprintf(
@@ -58,36 +50,24 @@ int main(int argc, char **argv)
       "Time taken for Scalable Data Generation is %9.6lf sec.\n",
       elapsedTime);
 
-  //printTuples(stderr, &tuples);
-
   /* ----------------------------------------- */
   /* Kernel 1 - Graph Construction             */
   /* ----------------------------------------- */
   fprintf(stderr, "Kernel 1: Constructing the graph...\n");
   elapsedTime = getSeconds();
 
-  // Consturct the graph structure. 
-  Graph graph;
   // Allocate memory required for the graph.
-  graph.rowOffset = (int *) malloc((config.n + 1) * sizeof(int));
-  assert(graph.rowOffset != NULL);
-  graph.column = (int *) malloc(config.m * sizeof(int));
-  assert(graph.column != NULL);
-  graph.weight = (int *) malloc(config.m * sizeof(int)); 
-  assert(graph.weight != NULL);
+  Graph graph;
+  allocate(&config, &graph);
 
-  // Construct the graph.
+  // Construct the graph from the tuples.
   constructGraph(&tuples, &graph);
 
   elapsedTime = getSeconds() - elapsedTime;
   fprintf(stderr, "Time taken for Kernel 1 is %9.6lf sec.\n", elapsedTime);
 
-  //printGraph(stderr, &graph);
-
   // Clean up the memory used to store generated data.
-  free(tuples.weight);
-  free(tuples.endVertex);
-  free(tuples.startVertex);
+  destroy(&tuples);
 
   /* ---------------------------------------- */
   /* Kernel 2 - Find max edge weight          */
@@ -138,8 +118,7 @@ int main(int argc, char **argv)
   // Clean up.
   free(permutation);
   free(bc);
-  free(graph.weight);
-  free(graph.column);
-  free(graph.rowOffset);
+
+  destroy(&graph);
 }
 

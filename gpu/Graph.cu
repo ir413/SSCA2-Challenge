@@ -1,20 +1,39 @@
 #include <assert.h>
 
-#include "PrefixSums.h"
-
 #include "Graph.h"
 
-// Number of thread bloks.
-#define THREAD_BLOCKS_COUNT 1
-// Number of threads per block.
-#define THREADS_PER_BLOCK 1024 
 
+void allocate(Configuration *config, Graph *graph)
+{
+  assert(config != NULL);
+  assert(graph != NULL);
 
-// TODO: Parallelize
+  graph->n = config->n;
+  graph->m = config->m;
+
+  graph->rowOffset = (int *) malloc((graph->n + 1) * sizeof(int));
+  assert(graph->rowOffset != NULL);
+
+  graph->column = (int *) malloc(graph->m * sizeof(int));
+  assert(graph->column != NULL);
+
+  graph->weight = (int *) malloc(graph->m * sizeof(int));
+  assert(graph->weight != NULL);
+}
+
+void destroy(Graph *graph)
+{
+  assert(graph != NULL);
+
+  free(graph->weight);
+  free(graph->column);
+  free(graph->rowOffset);
+}
+
 void constructGraph(GraphSDG *tuples, Graph *graph)
 {
-  graph->n = tuples->n;
-  graph->m = tuples->m;
+  assert(tuples != NULL);
+  assert(graph != NULL);
 
   // Allocate memory for temporary arrays.
   int *pos = (int *) malloc(tuples->m * sizeof(int));
@@ -54,6 +73,9 @@ void constructGraph(GraphSDG *tuples, Graph *graph)
 
 void printGraph(FILE *stream, Graph *graph)
 {
+  assert(stream != NULL);
+  assert(graph != NULL);
+
   fprintf(stream, "Row offsets:\n");
   for (int i = 0; i < (graph->n + 1); ++i)
   {
