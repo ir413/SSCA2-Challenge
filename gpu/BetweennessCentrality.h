@@ -21,7 +21,7 @@ void computeBetweennessCentrality(Configuration *config, Graph *g, double *bc);
 /**
  * Computes the Betweenness Centrality on the CPU.
  */
-void computeBCCPU(Configuration *config, Graph *g, double *bc);
+void computeBCCPU(Configuration *config, Graph *g, int *perm, double *bc);
 
 
 #endif // gpu/BetweennessCentrality.h

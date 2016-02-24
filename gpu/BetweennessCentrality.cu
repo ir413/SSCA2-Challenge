@@ -13,11 +13,15 @@ __global__ void computeBC(Graph *g, double *bc)
 
 }
 
-void computeBCCPU(Configuration *config, Graph *g, double *bc)
+void computeBCCPU(Configuration *config, Graph *g, int *perm, double *bc)
 {
   assert(config != NULL);
   assert(g != NULL);
+  assert(perm != NULL);
   assert(bc != NULL);
+
+  // Number of vertices to run BFS from.
+  int rootsCount = 1 << config->k4Approx;
 
   // Predecessors of a vertex v on shortest paths from s.
   plist *p;
@@ -78,8 +82,27 @@ void computeBCCPU(Configuration *config, Graph *g, double *bc)
   int *stack = (int *) malloc(g->n * sizeof(int));
   int *queue = (int *) malloc(g->n * sizeof(int));
 
-  for (int root = 0; root < g->n; ++root)
+  for (int r = 0; r < g->n; ++r)
   {
+    // Check if the required number of roots has been explored.
+    if (rootsCount == 0)
+    {
+      break;
+    }
+
+    // Apply the permutation.
+    int root = perm[r];
+
+    // Skip vertices with no outgoing edges.
+    if (g->rowOffset[root + 1] - g->rowOffset[root] == 0)
+    {
+      continue;
+    }
+    else
+    {
+      rootsCount--;
+    }
+
     int sPtr = 0;
     int qHead = 0;
     int qTail = 0;

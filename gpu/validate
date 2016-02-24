@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for scale in 1 2 3 4 5 6 7 8 9
+for scale in 1 2 3 4 5 6 7 8 9 10 11
 do
   echo "SCALE = $scale"
   ./SSCA2 $scale 2>&1 | grep "Kernel 4 validation"

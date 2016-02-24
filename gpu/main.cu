@@ -88,15 +88,15 @@ int main(int argc, char **argv)
   double *bc = (double *) calloc(config.n, sizeof(double));
   assert(bc != NULL);
 
-  int *permutation = (int *) malloc(config.n * sizeof(int));
-  assert(permutation != NULL);
-  generatePermutation(config.n, permutation);
+  int *perm = (int *) malloc(config.n * sizeof(int));
+  assert(perm != NULL);
+  generatePermutation(config.n, perm);
 
   // Start timing.
   elapsedTime = getSeconds();
   
   // Compute the betweenes centrality metric.
-  computeBCCPU(&config, &graph, bc);
+  computeBCCPU(&config, &graph, perm, bc);
   
   elapsedTime = getSeconds() - elapsedTime;
   fprintf(stderr, "Time taken for Kernel 4 is %9.6lf sec.\n", elapsedTime);
@@ -116,7 +116,7 @@ int main(int argc, char **argv)
   }
 
   // Clean up.
-  free(permutation);
+  free(perm);
   free(bc);
 
   destroy(&graph);
