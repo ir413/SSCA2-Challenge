@@ -33,14 +33,29 @@ typedef struct
 
 
 /**
- * Allocates memory for the graph.
+ * Allocates memory for the graph on the host.
  */
-void allocate(Configuration *config, Graph **graph);
+void allocateHost(Configuration *config, Graph **graph);
 
 /**
- * Frees the memory occupied by the graph.
+ * Allocates memory for the graph in the unified memory.
  */
-void destroy(Graph **graph);
+void allocateManaged(Configuration *config, Graph **graph);
+
+/**
+ * Allocates memory for the graph.
+ */
+void allocateManaged(Configuration *config, Graph **graph);
+
+/**
+ * Frees the host memory occupied by the graph.
+ */
+void destroyHost(Graph **graph);
+
+/**
+ * Frees the unified memory occupied by the graph.
+ */
+void destroyManaged(Graph **graph);
 
 /**
  * Consturcts a graph from a list of tuples.

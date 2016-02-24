@@ -3,7 +3,7 @@
 #include "Graph.h"
 
 
-void allocate(Configuration *config, Graph **graph)
+void allocateHost(Configuration *config, Graph **graph)
 {
   assert(config != NULL);
   assert(graph != NULL);
@@ -24,14 +24,39 @@ void allocate(Configuration *config, Graph **graph)
   assert((*graph)->weight != NULL);
 }
 
-void destroy(Graph **graph)
+void allocateManaged(Configuration *config, Graph **graph)
 {
+  assert(config != NULL);
   assert(graph != NULL);
+
+  cudaMallocManaged(graph, sizeof(Graph));
+
+  (*graph)->n = config->n;
+  (*graph)->m = config->m;
+
+  cudaMallocManaged(&((*graph)->rowOffset), (config->n + 1) * sizeof(int));
+  cudaMallocManaged(&((*graph)->column), config->m * sizeof(int));
+  cudaMallocManaged(&((*graph)->weight), config->m * sizeof(int));
+}
+
+void destroyHost(Graph **graph)
+{
+  assert(graph != NULL && *graph != NULL);
 
   free((*graph)->weight);
   free((*graph)->column);
   free((*graph)->rowOffset);
   free(*graph);
+}
+
+void destroyManaged(Graph **graph)
+{
+  assert(graph != NULL && *graph != NULL);
+
+  cudaFree((*graph)->weight);
+  cudaFree((*graph)->column);
+  cudaFree((*graph)->rowOffset);
+  cudaFree(*graph);
 }
 
 void constructGraph(TuplesSDG *tuples, Graph *graph)
