@@ -8,7 +8,13 @@
 // Maximal number of threads per block.
 #define MAX_THREADS_PER_BLOCK 1024 
 
-__global__ void initialize(int source, int n, int *d)
+__global__ void initialize(
+    int source,
+    int n,
+    int *d,
+    int *sigma,
+    double *delta,
+    plist *p)
 {
   int idx = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -17,15 +23,26 @@ __global__ void initialize(int source, int n, int *d)
     if (idx == source)
     {
       d[idx] = 0;
+      sigma[idx] = 1;
     }
     else
     {
       d[idx] = -1; 
+      sigma[idx] = 0;
+      delta[idx] = 0.0;
+      p[idx].count = 0;
     }
   }
 }
 
-__global__ void vertexParallelBFS(int source, Graph *g, int *d)
+__global__ void vertexParallelBFS(
+    int source,
+    Graph *g,
+    int *d,
+    int *sigma,
+    plist *p,
+    int *stack,
+    int *sPtr)
 {
   // We use empty and level to implicitly represent the standard bfs queue.
   __shared__ bool empty;
@@ -51,9 +68,18 @@ __global__ void vertexParallelBFS(int source, Graph *g, int *d)
       // Check if vs neighbours are to be visited i.e. if v is in the queue.
       if (d[v] == level)
       {
+        // Push v onto the stack.
+        stack[level] = v;
+
         // Go through the successors of v.
         for (int j = g->rowOffset[v]; j < g->rowOffset[v + 1]; ++j)
         {
+          // Skip edges whose weight is divisible by 8.
+          if ((g->weight[j] & 7) == 0)
+          {
+            continue;
+          }
+
           int w = g->column[j];
 
           // Not visited.
@@ -63,6 +89,18 @@ __global__ void vertexParallelBFS(int source, Graph *g, int *d)
             empty = false; 
             // No need for an atomic update.
             d[w] = d[v] + 1;
+            // Set sigma.
+            atomicExch(&sigma[w], sigma[v]);
+            // Save the predecessor.
+            p[w].list[p[w].count] = v;
+            atomicInc(&(p[w].count), 1);
+          }
+          else if (d[w] == d[v] + 1)
+          {
+            atomicAdd(&sigma[w], sigma[v]);
+            // Save the predecessor.
+            p[w].list[p[w].count] = v;
+            atomicInc(&(p[w].count), 1);
           }
         }
       }
@@ -75,38 +113,139 @@ __global__ void vertexParallelBFS(int source, Graph *g, int *d)
 
     __syncthreads();
   }
+
+  if (threadIdx.x == 0)
+  {
+    *sPtr = level;
+  }
+}
+
+__global__ void accumBC(
+    int source,
+    Graph *g,
+    int *sigma,
+    double *delta,
+    plist *p,
+    int *stack,
+    double *bc)
+{
+
 }
 
 void computeBCGPU(Configuration *config, Graph *g, int *perm, double *bc)
 {
-  printf("calling this crap\n");
-
   // Declare the auxilary structures.
   int *d;
+  int *sigma;
+  double *delta;
+  int *stack;
+  plist *p;
+  int *pListMem;
+  int *sPtr;
 
   // Allocate temporary structures in global memory.
   cudaMallocManaged(&d, g->n * sizeof(int));
+  cudaMallocManaged(&sigma, g->n * sizeof(int));
+  cudaMallocManaged(&delta, g->n * sizeof(double));
+  cudaMallocManaged(&stack, g->n * sizeof(int));
+  cudaMallocManaged(&p, g->n * sizeof(plist));
+  cudaMallocManaged(&pListMem, g->m * sizeof(int));
+  cudaMallocManaged(&sPtr, sizeof(int));
 
-  // run the bc kernel.
-  int source = 0;
+  // --- TMP
+  int *inDegree;
+  int *numEdges;
 
-  // Initialize the data structures.
-  initialize<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(source, g->n, d);
-  cudaDeviceSynchronize();
+  cudaMallocManaged(&inDegree, (g->n + 1) * sizeof(int));
+  cudaMemset(inDegree, 0, g->n + 1);
+  cudaMallocManaged(&numEdges, (g->n + 1) * sizeof(int));
 
-  // Run BFS.
-  vertexParallelBFS<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(source, g, d);
-  cudaDeviceSynchronize();
+  for (int i = 0; i < g->m; ++i)
+  {
+    inDegree[g->column[i]]++;
+  }
 
-  /*
+  numEdges[0] = 0;
+  for (int i = 1; i < (g->n + 1); ++i)
+  {
+    numEdges[i] = numEdges[i - 1] + inDegree[i - 1];
+  }
+
   for (int i = 0; i < g->n; ++i)
   {
-    printf("%d ", d[i]);
+    p[i].list = pListMem + numEdges[i];
+    p[i].degree = inDegree[i];
+    p[i].count = 0;
   }
-  printf("\n");
-  */
+
+  cudaFree(inDegree);
+  cudaFree(numEdges);
+  // --- TMP
+
+  for (int source = 0; source < g->n; ++source)
+  {
+    // Initialize the data structures.
+    initialize<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(
+        source,
+        g->n,
+        d,
+        sigma,
+        delta,
+        p);
+    cudaDeviceSynchronize();
+
+    // Run BFS.
+    vertexParallelBFS<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(
+        source,
+        g,
+        d,
+        sigma,
+        p,
+        stack,
+        sPtr);
+    cudaDeviceSynchronize();
+
+    // Sum centrality scores.
+    /*
+    accumBC<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(
+        source,
+        g,
+        sigma,
+        delta,
+        p,
+        stack,
+        bc);
+    cudaDeviceSynchronize();
+    */
+
+    // --- TMP
+    while (*sPtr > 0)
+    {
+      (*sPtr)--;
+      int w = stack[*sPtr];
+
+      for (int k = 0; k < p[w].count; ++k)
+      {
+        int v = p[w].list[k];
+        delta[v] = delta[v] + (
+            ((double) sigma[v]) / ((double) sigma[w])) * (1.0 + delta[w]);
+      }
+
+      if (w != source)
+      {
+        bc[w] += delta[w];
+      }
+    }
+    // --- TMP
+  }
 
   // Clean up.
+  cudaFree(sPtr);
+  cudaFree(pListMem);
+  cudaFree(p);
+  cudaFree(stack);
+  cudaFree(delta);
+  cudaFree(sigma);
   cudaFree(d);
 }
 

@@ -8,7 +8,7 @@
 typedef struct
 {
   int *list;
-  int count;
+  unsigned int count;
   int degree;
 } plist;
 
