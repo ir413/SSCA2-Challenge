@@ -35,12 +35,12 @@ typedef struct
 /**
  * Allocates memory for the graph.
  */
-void allocate(Configuration *config, Graph *graph);
+void allocate(Configuration *config, Graph **graph);
 
 /**
  * Frees the memory occupied by the graph.
  */
-void destroy(Graph *graph);
+void destroy(Graph **graph);
 
 /**
  * Consturcts a graph from a list of tuples.

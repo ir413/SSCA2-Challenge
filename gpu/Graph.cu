@@ -3,31 +3,35 @@
 #include "Graph.h"
 
 
-void allocate(Configuration *config, Graph *graph)
+void allocate(Configuration *config, Graph **graph)
 {
   assert(config != NULL);
   assert(graph != NULL);
 
-  graph->n = config->n;
-  graph->m = config->m;
+  *graph = (Graph *) malloc(sizeof(Graph));
+  assert(*graph != NULL); 
 
-  graph->rowOffset = (int *) malloc((graph->n + 1) * sizeof(int));
-  assert(graph->rowOffset != NULL);
+  (*graph)->n = config->n;
+  (*graph)->m = config->m;
 
-  graph->column = (int *) malloc(graph->m * sizeof(int));
-  assert(graph->column != NULL);
+  (*graph)->rowOffset = (int *) malloc(((*graph)->n + 1) * sizeof(int));
+  assert((*graph)->rowOffset != NULL);
 
-  graph->weight = (int *) malloc(graph->m * sizeof(int));
-  assert(graph->weight != NULL);
+  (*graph)->column = (int *) malloc((*graph)->m * sizeof(int));
+  assert((*graph)->column != NULL);
+
+  (*graph)->weight = (int *) malloc((*graph)->m * sizeof(int));
+  assert((*graph)->weight != NULL);
 }
 
-void destroy(Graph *graph)
+void destroy(Graph **graph)
 {
   assert(graph != NULL);
 
-  free(graph->weight);
-  free(graph->column);
-  free(graph->rowOffset);
+  free((*graph)->weight);
+  free((*graph)->column);
+  free((*graph)->rowOffset);
+  free(*graph);
 }
 
 void constructGraph(TuplesSDG *tuples, Graph *graph)

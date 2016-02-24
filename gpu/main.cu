@@ -57,11 +57,11 @@ int main(int argc, char **argv)
   elapsedTime = getSeconds();
 
   // Allocate memory required for the graph.
-  Graph graph;
+  Graph *graph;
   allocate(&config, &graph);
 
   // Construct the graph from the tuples.
-  constructGraph(&tuples, &graph);
+  constructGraph(&tuples, graph);
 
   elapsedTime = getSeconds() - elapsedTime;
   fprintf(stderr, "Time taken for Kernel 1 is %9.6lf sec.\n", elapsedTime);
@@ -96,7 +96,7 @@ int main(int argc, char **argv)
   elapsedTime = getSeconds();
   
   // Compute the betweenes centrality metric.
-  computeBCCPU(&config, &graph, perm, bc);
+  computeBCCPU(&config, graph, perm, bc);
 
   //computeBCGPU(&config, &graph, perm, bc);
   
