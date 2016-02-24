@@ -208,6 +208,15 @@ void computeBCCPU(Configuration *config, Graph *g, int *perm, double *bc)
         bc[w] += delta[w];
       }
     }
-
   }
+
+  // Free the memory.
+  free(queue);
+  free(stack);
+  free(delta);
+  free(d);
+  free(sigma);
+  free(pListMem);
+  free(p);
 }
+
