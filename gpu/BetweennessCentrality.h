@@ -14,12 +14,12 @@ typedef struct
 
 
 /**
- * Computes the Betweenness Centrality metric.
+ * Computes the Betweenness Centrality metric on the GPU.
  */
-void computeBetweennessCentrality(Configuration *config, Graph *g, double *bc);
+void computeBCGPU(Configuration *config, Graph *g, int *perm,  double *bc);
 
 /**
- * Computes the Betweenness Centrality on the CPU.
+ * Computes the Betweenness Centrality metric on the CPU.
  */
 void computeBCCPU(Configuration *config, Graph *g, int *perm, double *bc);
 

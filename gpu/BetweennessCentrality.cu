@@ -4,13 +4,32 @@
 #include "BetweennessCentrality.h"
 
 // Number of thread bloks.
-#define THREAD_BLOCKS_COUNT 1
+#define BLOCKS_COUNT 1
 // Number of threads per block.
 #define THREADS_PER_BLOCK 1024 
 
-__global__ void computeBC(Graph *g, double *bc)
+__global__ void computeBC(Graph *g, int *d, int *queue, double *bc)
 {
+}
 
+void computeBCGPU(Configuration *config, Graph *g, int *perm, double *bc)
+{
+  // Declare the auxilary structures.
+  int *d;
+  int *queue;
+
+  // Allocate temporary structures in global memory.
+  cudaMallocManaged(&d, g->n * sizeof(int));
+  cudaMemset(d, -1, g->n);
+
+  cudaMallocManaged(&queue, g->n * sizeof(int));
+
+  // run the bc kernel.
+  computeBC<<<BLOCKS_COUNT, THREADS_PER_BLOCK>>>(g, d, queue, bc);
+
+  // Clean up.
+  cudaFree(queue);
+  cudaFree(d);
 }
 
 void computeBCCPU(Configuration *config, Graph *g, int *perm, double *bc)
