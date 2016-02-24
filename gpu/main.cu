@@ -107,7 +107,7 @@ int main(int argc, char **argv)
   elapsedTime = getSeconds();
   
   // Compute the betweenes centrality metric.
-  computeBCCPU(&config, graph, perm, bc);
+  computeBCGPU(&config, graph, perm, bc);
 
   //computeBCGPU(&config, &graph, perm, bc);
   

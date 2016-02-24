@@ -3,32 +3,110 @@
 
 #include "BetweennessCentrality.h"
 
-// Number of thread bloks.
+// Number of thread blocks.
 #define BLOCKS_COUNT 1
-// Number of threads per block.
-#define THREADS_PER_BLOCK 1024 
+// Maximal number of threads per block.
+#define MAX_THREADS_PER_BLOCK 1024 
 
-__global__ void computeBC(Graph *g, int *d, int *queue, double *bc)
+__global__ void initialize(int source, int n, int *d)
 {
+  int idx = threadIdx.x + blockIdx.x * blockDim.x;
+
+  if (idx < n)
+  {
+    if (idx == source)
+    {
+      d[idx] = 0;
+    }
+    else
+    {
+      d[idx] = -1; 
+    }
+  }
+}
+
+__global__ void vertexParallelBFS(int source, Graph *g, int *d)
+{
+  // We use empty and level to implicitly represent the standard bfs queue.
+  __shared__ bool empty;
+  __shared__ int level;
+
+  if (threadIdx.x == 0)
+  {
+    empty = false;
+    level = 0;
+  }
+
+  __syncthreads();
+
+  while (!empty)
+  {
+    __syncthreads();
+    empty = true;
+    __syncthreads();
+
+    // TODO: unroll the first iteration.
+    for (int v = threadIdx.x; v < g->n; v += blockDim.x)
+    {
+      // Check if vs neighbours are to be visited i.e. if v is in the queue.
+      if (d[v] == level)
+      {
+        // Go through the successors of v.
+        for (int j = g->rowOffset[v]; j < g->rowOffset[v + 1]; ++j)
+        {
+          int w = g->column[j];
+
+          // Not visited.
+          if (d[w] == -1)
+          {
+            // Mark that there are more nodes to be explored.
+            empty = false; 
+            // No need for an atomic update.
+            d[w] = d[v] + 1;
+          }
+        }
+      }
+    }
+
+    if (threadIdx.x == 0)
+    {
+      level++;
+    }
+
+    __syncthreads();
+  }
 }
 
 void computeBCGPU(Configuration *config, Graph *g, int *perm, double *bc)
 {
+  printf("calling this crap\n");
+
   // Declare the auxilary structures.
   int *d;
-  int *queue;
 
   // Allocate temporary structures in global memory.
   cudaMallocManaged(&d, g->n * sizeof(int));
-  cudaMemset(d, -1, g->n);
-
-  cudaMallocManaged(&queue, g->n * sizeof(int));
 
   // run the bc kernel.
-  computeBC<<<BLOCKS_COUNT, THREADS_PER_BLOCK>>>(g, d, queue, bc);
+  int source = 0;
+
+  // Initialize the data structures.
+  initialize<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(source, g->n, d);
+  cudaDeviceSynchronize();
+
+  // Run BFS.
+  vertexParallelBFS<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(source, g, d);
+  cudaDeviceSynchronize();
+
+  /*
+  for (int i = 0; i < g->n; ++i)
+  {
+    printf("%d ", d[i]);
+  }
+  printf("\n");
+  */
 
   // Clean up.
-  cudaFree(queue);
   cudaFree(d);
 }
 
