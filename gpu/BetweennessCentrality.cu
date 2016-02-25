@@ -174,7 +174,6 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, double *bc)
   for (int i = 0; i < g->n; ++i)
   {
     p[i].list = pListMem + numEdges[i];
-    p[i].degree = inDegree[i];
     p[i].count = 0;
   }
 
@@ -270,7 +269,6 @@ void computeBCCPU(Configuration *config, Graph *g, int *perm, double *bc)
   // Dependency of vertices.
   double *delta;
  
-  // inDegree array wasteful -> can use p[].degree 
   int *inDegree;
   int *numEdges;
 
@@ -302,7 +300,6 @@ void computeBCCPU(Configuration *config, Graph *g, int *perm, double *bc)
   for (int i = 0; i < g->n; ++i)
   {
     p[i].list = pListMem + numEdges[i];
-    p[i].degree = inDegree[i];
     p[i].count = 0;
   }
 

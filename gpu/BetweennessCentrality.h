@@ -9,7 +9,6 @@ typedef struct
 {
   int *list;
   unsigned int count;
-  int degree;
 } plist;
 
 
