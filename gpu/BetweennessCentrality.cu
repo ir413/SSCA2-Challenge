@@ -378,10 +378,6 @@ void computeBCCPU(Configuration *config, Graph *g, int *perm, double *bc)
 
         int w = g->column[j];
 
-        if (v == w) {
-          continue;
-        }
-
         // Not visited.
         if (d[w] == -1)
         {
@@ -391,13 +387,9 @@ void computeBCCPU(Configuration *config, Graph *g, int *perm, double *bc)
         
           // Distance to w is distance to v + 1.
           d[w] = d[v] + 1;
-
-          sigma[w] = sigma[v];
-          // Save the predecesor.
-          p[w].list[p[w].count] = v;
-          p[w].count++;
         }
-        else if (d[w] == (d[v] + 1))
+
+        if (d[w] == (d[v] + 1))
         {
           sigma[w] += sigma[v];
           // Save the predecesor.

@@ -58,8 +58,8 @@ int main(int argc, char **argv)
 
   // Allocate memory required for the graph.
   Graph *graph;
-  //allocateHost(&config, &graph);
-  allocateManaged(&config, &graph);
+  allocateHost(&config, &graph);
+  //allocateManaged(&config, &graph);
 
   // Construct the graph from the tuples.
   constructGraph(&tuples, graph);
@@ -86,29 +86,26 @@ int main(int argc, char **argv)
   fprintf(stderr, "Kernel 4: Computing Betweenness Centrality...\n");
   
   // Allocating bc array and generating vertex permutations is not timed.
-  /*
   double *bc = (double *) calloc(config.n, sizeof(double));
   assert(bc != NULL);
   int *perm = (int *) malloc(config.n * sizeof(int));
   assert(perm != NULL);
   generatePermutation(config.n, perm);
-  */
 
+  /*
   double *bc;
   int *perm;
-
   cudaMallocManaged(&bc, config.n * sizeof(double));
   cudaMemset(bc, 0.0, config.n);
-
   cudaMallocManaged(&perm, config.n * sizeof(int));
   generatePermutation(config.n, perm);
+  */
 
   // Start timing.
   elapsedTime = getSeconds();
   
   // Compute the betweenes centrality metric.
-  computeBCGPU(&config, graph, perm, bc);
-
+  computeBCCPU(&config, graph, perm, bc);
   //computeBCGPU(&config, &graph, perm, bc);
   
   elapsedTime = getSeconds() - elapsedTime;
@@ -129,14 +126,14 @@ int main(int argc, char **argv)
   }
 
   // Clean up.
-  /*
   free(perm);
   free(bc);
-  */
+  destroyHost(&graph);
+  
+  /*
   cudaFree(perm);
   cudaFree(bc);
-
-  //destroyHost(&graph);
   destroyManaged(&graph);
+  */
 }
 
