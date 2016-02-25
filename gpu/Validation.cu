@@ -10,7 +10,7 @@
  * You will need to add to this table if you run for larger
  * SCALE.
  **************************************************************/
-bool isValid(Configuration *config, double *bc)
+bool isValid(Configuration *config, float *bc)
 {
   int i = 0;
   double maxBC = bc[0], minBC = bc[0], sum = 0., avg = 0.;

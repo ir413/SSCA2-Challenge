@@ -12,8 +12,8 @@ __global__ void initialize(
     int source,
     int n,
     int *d,
-    int *sigma,
-    double *delta,
+    float *sigma,
+    float *delta,
     plist *p)
 {
   int idx = threadIdx.x + blockIdx.x * blockDim.x;
@@ -23,12 +23,12 @@ __global__ void initialize(
     if (idx == source)
     {
       d[idx] = 0;
-      sigma[idx] = 1;
+      sigma[idx] = 1.0;
     }
     else
     {
       d[idx] = -1; 
-      sigma[idx] = 0;
+      sigma[idx] = 0.0;
       delta[idx] = 0.0;
       p[idx].count = 0;
     }
@@ -39,10 +39,9 @@ __global__ void vertexParallelBFS(
     int source,
     Graph *g,
     int *d,
-    int *sigma,
+    float *sigma,
     plist *p,
-    int *stack,
-    int *sPtr)
+    unsigned int *l)
 {
   // We use empty and level to implicitly represent the standard bfs queue.
   __shared__ bool empty;
@@ -68,9 +67,6 @@ __global__ void vertexParallelBFS(
       // Check if vs neighbours are to be visited i.e. if v is in the queue.
       if (d[v] == level)
       {
-        // Push v onto the stack.
-        stack[level] = v;
-
         // Go through the successors of v.
         for (int j = g->rowOffset[v]; j < g->rowOffset[v + 1]; ++j)
         {
@@ -89,13 +85,9 @@ __global__ void vertexParallelBFS(
             empty = false; 
             // No need for an atomic update.
             d[w] = d[v] + 1;
-            // Set sigma.
-            atomicExch(&sigma[w], sigma[v]);
-            // Save the predecessor.
-            p[w].list[p[w].count] = v;
-            atomicInc(&(p[w].count), 1);
           }
-          else if (d[w] == d[v] + 1)
+          
+          if (d[w] == (d[v] + 1))
           {
             atomicAdd(&sigma[w], sigma[v]);
             // Save the predecessor.
@@ -114,43 +106,81 @@ __global__ void vertexParallelBFS(
     __syncthreads();
   }
 
+  __syncthreads();
+
   if (threadIdx.x == 0)
   {
-    *sPtr = level;
+    *l = level - 1;
   }
 }
 
 __global__ void accumBC(
     int source,
     Graph *g,
-    int *sigma,
-    double *delta,
+    int *d,
+    float *sigma,
+    float *delta,
     plist *p,
-    int *stack,
-    double *bc)
+    unsigned int l,
+    float *bc)
 {
+  __shared__ int level;
+
+  if (threadIdx.x == 0)
+  {
+    level = l;
+  }
+
+  __syncthreads();
+
+  while (level > 0)
+  {
+    for (int w = threadIdx.x; w < g->n; w += blockDim.x)
+    {
+      if (d[w] == level)
+      {
+        for (int k = 0; k < p[w].count; ++k)
+        {
+          int v = p[w].list[k];
+       
+          delta[v] = delta[v] + (sigma[v] / sigma[w]) * (1.0 + delta[w]);
+        }
+      } 
+
+      if (w != source)
+      {
+        atomicAdd(&bc[w], delta[w]); 
+      }
+    }
+  
+    if (threadIdx.x == 0)
+    {
+      level--;
+    }
+    __syncthreads();
+  }
 
 }
 
-void computeBCGPU(Configuration *config, Graph *g, int *perm, double *bc)
+void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
 {
   // Declare the auxilary structures.
   int *d;
-  int *sigma;
-  double *delta;
+  float *sigma;
+  float *delta;
   int *stack;
   plist *p;
   int *pListMem;
-  int *sPtr;
+  unsigned int *l;
 
   // Allocate temporary structures in global memory.
   cudaMallocManaged(&d, g->n * sizeof(int));
-  cudaMallocManaged(&sigma, g->n * sizeof(int));
-  cudaMallocManaged(&delta, g->n * sizeof(double));
+  cudaMallocManaged(&sigma, g->n * sizeof(float));
+  cudaMallocManaged(&delta, g->n * sizeof(float));
   cudaMallocManaged(&stack, g->n * sizeof(int));
   cudaMallocManaged(&p, g->n * sizeof(plist));
   cudaMallocManaged(&pListMem, g->m * sizeof(int));
-  cudaMallocManaged(&sPtr, sizeof(int));
+  cudaMallocManaged(&l, sizeof(unsigned int));
 
   // --- TMP
   int *inDegree;
@@ -183,6 +213,8 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, double *bc)
 
   for (int source = 0; source < g->n; ++source)
   {
+    *l = 0;
+
     // Initialize the data structures.
     initialize<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(
         source,
@@ -200,46 +232,24 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, double *bc)
         d,
         sigma,
         p,
-        stack,
-        sPtr);
+        l);
     cudaDeviceSynchronize();
-
+  
     // Sum centrality scores.
-    /*
     accumBC<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(
         source,
         g,
+        d,
         sigma,
         delta,
         p,
-        stack,
+        *l,
         bc);
     cudaDeviceSynchronize();
-    */
-
-    // --- TMP
-    while (*sPtr > 0)
-    {
-      (*sPtr)--;
-      int w = stack[*sPtr];
-
-      for (int k = 0; k < p[w].count; ++k)
-      {
-        int v = p[w].list[k];
-        delta[v] = delta[v] + (
-            ((double) sigma[v]) / ((double) sigma[w])) * (1.0 + delta[w]);
-      }
-
-      if (w != source)
-      {
-        bc[w] += delta[w];
-      }
-    }
-    // --- TMP
   }
 
   // Clean up.
-  cudaFree(sPtr);
+  cudaFree(l);
   cudaFree(pListMem);
   cudaFree(p);
   cudaFree(stack);
@@ -248,7 +258,7 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, double *bc)
   cudaFree(d);
 }
 
-void computeBCCPU(Configuration *config, Graph *g, int *perm, double *bc)
+void computeBCCPU(Configuration *config, Graph *g, int *perm, float *bc)
 {
   assert(config != NULL);
   assert(g != NULL);
@@ -263,11 +273,11 @@ void computeBCCPU(Configuration *config, Graph *g, int *perm, double *bc)
   int *pListMem;
 
   // Number of shortest paths.
-  double *sigma;
+  float *sigma;
   // Shortest path length between the pairs.
   int *d;
   // Dependency of vertices.
-  double *delta;
+  float *delta;
  
   int *inDegree;
   int *numEdges;
@@ -308,9 +318,9 @@ void computeBCCPU(Configuration *config, Graph *g, int *perm, double *bc)
   free(numEdges);
 
   // Allocate memory.
-  sigma = (double *) malloc(g->n * sizeof(double));
+  sigma = (float *) malloc(g->n * sizeof(float));
   d = (int *) malloc(g->n * sizeof(int));
-  delta = (double *) calloc(g->n, sizeof(double));
+  delta = (float *) calloc(g->n, sizeof(float));
 
   int *stack = (int *) malloc(g->n * sizeof(int));
   int *queue = (int *) malloc(g->n * sizeof(int));

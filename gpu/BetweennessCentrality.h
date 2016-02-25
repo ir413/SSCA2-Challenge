@@ -15,12 +15,12 @@ typedef struct
 /**
  * Computes the Betweenness Centrality metric on the GPU.
  */
-void computeBCGPU(Configuration *config, Graph *g, int *perm,  double *bc);
+void computeBCGPU(Configuration *config, Graph *g, int *perm,  float *bc);
 
 /**
  * Computes the Betweenness Centrality metric on the CPU.
  */
-void computeBCCPU(Configuration *config, Graph *g, int *perm, double *bc);
+void computeBCCPU(Configuration *config, Graph *g, int *perm, float *bc);
 
 
 #endif // gpu/BetweennessCentrality.h

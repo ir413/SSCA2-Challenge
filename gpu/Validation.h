@@ -8,7 +8,7 @@
  * Determines if the computed Betweenness Centrality scores are
  * valid for the given benchmark configuration.
  */
-bool isValid(Configuration *config, double *bc);
+bool isValid(Configuration *config, float *bc);
 
 
 #endif // gpu/Validation.h
