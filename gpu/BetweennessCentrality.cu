@@ -30,8 +30,8 @@ __global__ void initialize(
       d[idx] = -1; 
       sigma[idx] = 0.0;
       delta[idx] = 0.0;
-      p[idx].count = 0;
     }
+    p[idx].count = 0;
   }
 }
 
@@ -91,8 +91,8 @@ __global__ void vertexParallelBFS(
           {
             atomicAdd(&sigma[w], sigma[v]);
             // Save the predecessor.
-            p[w].list[p[w].count] = v;
-            atomicInc(&(p[w].count), 1);
+            atomicExch(&(p[w].list[p[w].count]), v);
+            atomicAdd(&(p[w].count), 1);
           }
         }
       }
@@ -110,7 +110,7 @@ __global__ void vertexParallelBFS(
 
   if (threadIdx.x == 0)
   {
-    *l = level - 1;
+    *l = level;
   }
 }
 
@@ -135,6 +135,8 @@ __global__ void accumBC(
 
   while (level > 0)
   {
+    __syncthreads();
+
     for (int w = threadIdx.x; w < g->n; w += blockDim.x)
     {
       if (d[w] == level)
@@ -143,16 +145,28 @@ __global__ void accumBC(
         {
           int v = p[w].list[k];
        
-          delta[v] = delta[v] + (sigma[v] / sigma[w]) * (1.0 + delta[w]);
+          atomicAdd(&delta[v], (sigma[v] / sigma[w]) * (1.0 + delta[w]));
         }
       } 
 
+      __syncthreads();
       if (w != source)
       {
-        atomicAdd(&bc[w], delta[w]); 
+        atomicAdd(&bc[w], delta[w]);
       }
     }
-  
+
+    /*
+    __syncthreads();
+    for (int v = threadIdx.x; v < g->n; v += blockDim.x)
+    {
+      if (v != source)
+      {
+        atomicAdd(&bc[v], delta[v]);
+      }
+    }
+    */
+
     if (threadIdx.x == 0)
     {
       level--;
@@ -160,6 +174,20 @@ __global__ void accumBC(
     __syncthreads();
   }
 
+  /*
+  __syncthreads();
+
+  for (int v = threadIdx.x; v < g->n; v += blockDim.x)
+  {
+
+    atomicAdd(&bc[v], delta[v]);
+    
+    //if (v != source)
+    //{
+    //  atomicAdd(&bc[v], delta[v]);
+    //}
+  }
+  */
 }
 
 void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
@@ -215,6 +243,8 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
   {
     *l = 0;
 
+    //printf("before %d \n", *l);
+
     // Initialize the data structures.
     initialize<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(
         source,
@@ -234,6 +264,8 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
         p,
         l);
     cudaDeviceSynchronize();
+
+    //printf("after %d \n", *l);
   
     // Sum centrality scores.
     accumBC<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(
@@ -246,6 +278,38 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
         *l,
         bc);
     cudaDeviceSynchronize();
+
+    printf("D:\n");
+    for (int i = 0; i < g->n; ++i)
+    {
+      printf("%d, ", d[i]);
+    }
+    printf("\nSigma:\n");
+    for (int i = 0; i < g->n; ++i)
+    {
+      printf("%f, ", sigma[i]);
+    }
+    printf("\n");
+
+    /*
+    printf("P:\n");
+    for (int i = 0; i < g->n; ++i)
+    {
+      printf("p[%d].count = %d\n  ", i, p[i].count);
+      for (int j = 0; j < p[i].count; ++j)
+      {
+        printf("%d, ", p[i].list[j]);
+      }
+      printf("\n");
+    }
+    */
+   
+    printf("Delta:\n");
+    for (int i = 0; i < g->n; ++i)
+    {
+      printf("%f, ", delta[i]);
+    }
+    printf("\n");
   }
 
   // Clean up.
@@ -406,6 +470,31 @@ void computeBCCPU(Configuration *config, Graph *g, int *perm, float *bc)
       }
     }
 
+    printf("Root: %d\n", root);
+    printf("D:\n");
+    for (int i = 0; i < g->n; ++i)
+    {
+      printf("%d, ", d[i]);
+    }
+    printf("\nSigma:\n");
+    for (int i = 0; i < g->n; ++i)
+    {
+      printf("%f, ", sigma[i]);
+    }
+    printf("\n");
+    /*
+    printf("P:\n");
+    for (int i = 0; i < g->n; ++i)
+    {
+      printf("p[%d].count = %d\n  ", i, p[i].count);
+      for (int j = 0; j < p[i].count; ++j)
+      {
+        printf("%d, ", p[i].list[j]);
+      }
+      printf("\n");
+    }
+    */
+
     // While !empty(Stack)
     while (sPtr > 0)
     {
@@ -424,6 +513,13 @@ void computeBCCPU(Configuration *config, Graph *g, int *perm, float *bc)
         bc[w] += delta[w];
       }
     }
+
+    printf("Delta:\n");
+    for (int i = 0; i < g->n; ++i)
+    {
+      printf("%f, ", delta[i]);
+    }
+    printf("\n");
   }
 
   // Free the memory.
