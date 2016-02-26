@@ -10,7 +10,8 @@
 
 
 __global__ void vertexParallelBC(
-    int source,
+    int *sources,
+    int sourceCount,
     Graph *g,
     int *d,
     float *sigma,
@@ -18,126 +19,151 @@ __global__ void vertexParallelBC(
     plist *p,
     float *bc)
 {
-  // We use empty and level to implicitly represent the standard bfs queue.
+  // Used to determine the next source to explore.
+  __shared__ int sourceIdx;
+  __shared__ int source;
+  // Used to represent the standard bfs queue, implicitly.
   __shared__ bool empty;
   __shared__ int level;
 
-  // Initialize the required data structures.
-  for (int v = threadIdx.x; v < g->n; v += blockDim.x)
-  {
-    if (v == source)
-    {
-      d[v] = 0;
-      sigma[v] = 1.0;
-    } 
-    else
-    {
-      d[v] = -1;
-      sigma[v] = 0.0;
-    }
-
-    delta[v] = 0.0;
-    p[v].count = 0;
-  }
-
   if (threadIdx.x == 0)
   {
-    empty = false;
-    level = 0;
+    sourceIdx = 0;
   }
 
   __syncthreads();
 
-  // Perform BFS.
-  while (!empty)
+  while (sourceIdx < sourceCount)
   {
+    if (threadIdx.x == 0)
+    {
+      source = sources[sourceIdx];
+    }
     __syncthreads();
-    empty = true;
-    __syncthreads();
-
-    // TODO: unroll the first iteration.
+   
+    // Initialize the required data structures.
     for (int v = threadIdx.x; v < g->n; v += blockDim.x)
     {
-      // Check if vs neighbours are to be visited i.e. if v is in the queue.
-      if (d[v] == level)
+      if (v == source)
       {
-        // Go through the successors of v.
-        for (int j = g->rowOffset[v]; j < g->rowOffset[v + 1]; ++j)
+        d[v] = 0;
+        sigma[v] = 1.0;
+      } 
+      else
+      {
+        d[v] = -1;
+        sigma[v] = 0.0;
+      }
+
+      delta[v] = 0.0;
+      p[v].count = 0;
+    }
+
+    if (threadIdx.x == 0)
+    {
+      empty = false;
+      level = 0;
+    }
+
+    __syncthreads();
+
+    // Perform BFS.
+    while (!empty)
+    {
+      __syncthreads();
+      empty = true;
+      __syncthreads();
+
+      // TODO: unroll the first iteration.
+      for (int v = threadIdx.x; v < g->n; v += blockDim.x)
+      {
+        // Check if vs neighbours are to be visited i.e. if v is in the queue.
+        if (d[v] == level)
         {
-          // Skip edges whose weight is divisible by 8.
-          if ((g->weight[j] & 7) == 0)
+          // Go through the successors of v.
+          for (int j = g->rowOffset[v]; j < g->rowOffset[v + 1]; ++j)
           {
-            continue;
-          }
+            // Skip edges whose weight is divisible by 8.
+            if ((g->weight[j] & 7) == 0)
+            {
+              continue;
+            }
 
-          int w = g->column[j];
+            int w = g->column[j];
 
-          // Not visited.
-          if (d[w] == -1)
-          {
-            // Mark that there are more nodes to be explored.
-            empty = false; 
-            // No need for an atomic update.
-            d[w] = d[v] + 1;
-          }
-          
-          if (d[w] == (d[v] + 1))
-          {
-            atomicAdd(&sigma[w], sigma[v]);
-            // Save the predecessor.
-            atomicExch(&(p[w].list[p[w].count]), v);
-            atomicAdd(&(p[w].count), 1);
+            // Not visited.
+            if (d[w] == -1)
+            {
+              // Mark that there are more nodes to be explored.
+              empty = false; 
+              // No need for an atomic update.
+              d[w] = d[v] + 1;
+            }
+            
+            if (d[w] == (d[v] + 1))
+            {
+              atomicAdd(&sigma[w], sigma[v]);
+              // Save the predecessor.
+              atomicExch(&(p[w].list[p[w].count]), v);
+              atomicAdd(&(p[w].count), 1);
+            }
           }
         }
       }
-    }
 
-    __syncthreads();
-    if (threadIdx.x == 0)
-    {
-      level++;
-    }
-    __syncthreads();
-  }
-
-  __syncthreads();
-
-  // Accumulate bc scores.
-  while (level > 0)
-  {
-    __syncthreads();
- 
-    for (int w = threadIdx.x; w < g->n; w += blockDim.x)
-    {
-      if (d[w] == level)
+      __syncthreads();
+      if (threadIdx.x == 0)
       {
-        for (int k = 0; k < p[w].count; ++k)
-        {
-          int v = p[w].list[k];
-
-          float d = (sigma[v] / sigma[w]) * (1.0 + delta[w]);
-          atomicAdd(&delta[v], d);
-        }
-      } 
+        level++;
+      }
+      __syncthreads();
     }
 
     __syncthreads();
+
+    // Accumulate bc scores.
+    while (level > 0)
+    {
+      __syncthreads();
+   
+      for (int w = threadIdx.x; w < g->n; w += blockDim.x)
+      {
+        if (d[w] == level)
+        {
+          for (int k = 0; k < p[w].count; ++k)
+          {
+            int v = p[w].list[k];
+
+            float d = (sigma[v] / sigma[w]) * (1.0 + delta[w]);
+            atomicAdd(&delta[v], d);
+          }
+        } 
+      }
+
+      __syncthreads();
+      if (threadIdx.x == 0)
+      {
+        level--;
+      }
+      __syncthreads();
+    }
+
+    __syncthreads();
+
+    // Update bc scores.
+    for (int v = threadIdx.x; v < g->n; v += blockDim.x)
+    {
+      if (v != source)
+      {
+        atomicAdd(&bc[v], delta[v]);
+      }
+    }
+
     if (threadIdx.x == 0)
     {
-      level--;
+      sourceIdx++;
     }
     __syncthreads();
-  }
-
-  __syncthreads();
-
-  // Update bc scores.
-  for (int v = threadIdx.x; v < g->n; v += blockDim.x)
-  {
-    if (v != source)
-    {
-      atomicAdd(&bc[v], delta[v]);
-    }
   }
 }
 
@@ -217,22 +243,18 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
       sourceCount++;
     }
   }
-
-  for (int i = 0; i < sourceCount; ++i)
-  {
-    int source = sources[i];
-
-    // Run BC.
-    vertexParallelBC<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(
-        source,
-        g,
-        d,
-        sigma,
-        delta,
-        p,
-        bc);
-    cudaDeviceSynchronize();
-  }
+  
+  // Run BC.
+  vertexParallelBC<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(
+      sources,
+      sourceCount,
+      g,
+      d,
+      sigma,
+      delta,
+      p,
+      bc);
+  cudaDeviceSynchronize();
 
   // Clean up.
   cudaFree(sources);
