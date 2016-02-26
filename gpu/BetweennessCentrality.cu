@@ -1,6 +1,8 @@
 #include <assert.h>
 #include <stdio.h>
 
+#include "Timer.h"
+
 #include "BetweennessCentrality.h"
 
 // Number of thread blocks.
@@ -167,6 +169,9 @@ __global__ void vertexParallelBC(
 
 void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
 {
+
+  double elapsedTime = getSeconds();
+  
   // Declare the auxilary structures.
   int *d;
   float *sigma;
@@ -187,6 +192,10 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
   cudaMallocManaged(&p, g->n * sizeof(plist));
   cudaMallocManaged(&pListMem, g->m * sizeof(int));
   cudaMallocManaged(&sources, maxSourceCount * sizeof(int));
+
+  elapsedTime = getSeconds() - elapsedTime;
+  fprintf(stderr, "Kernel 4: Work memory allocation: %9.6lf sec.\n", elapsedTime);
+  elapsedTime = getSeconds();
 
    // --- TMP
   int *inDegree;
@@ -217,6 +226,10 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
   cudaFree(numEdges);
   // --- TMP
 
+  elapsedTime = getSeconds() - elapsedTime;
+  fprintf(stderr, "Kernel 4: Predecessor initialization: %9.6lf sec.\n", elapsedTime);
+  elapsedTime = getSeconds();
+
   // Construct the list of sources.
   int sourceCount = 0; 
 
@@ -241,6 +254,10 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
       sourceCount++;
     }
   }
+
+  elapsedTime = getSeconds() - elapsedTime;
+  fprintf(stderr, "Kernel 4: Sources construction: %9.6lf sec.\n", elapsedTime);
+  elapsedTime = getSeconds();
   
   // Run BC.
   vertexParallelBC<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(
@@ -253,6 +270,10 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
       p,
       bc);
   cudaDeviceSynchronize();
+
+  elapsedTime = getSeconds() - elapsedTime;
+  fprintf(stderr, "Kernel 4: BC Kernel: %9.6lf sec.\n", elapsedTime);
+  elapsedTime = getSeconds();
 
   // Clean up.
   cudaFree(sources);
