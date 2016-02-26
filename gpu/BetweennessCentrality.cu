@@ -160,6 +160,9 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
   cudaMallocManaged(&p, g->n * sizeof(plist));
   cudaMallocManaged(&pListMem, g->m * sizeof(int));
 
+  // Compute the number of sources.
+  int sourceCount = 1 << config->k4Approx; 
+
   // --- TMP
   int *inDegree;
   int *numEdges;
@@ -191,9 +194,27 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
 
   for (int i = 0; i < g->n; ++i)
   {
+    if (sourceCount == 0)
+    {
+      break;
+    }
+
+    // Apply the permutation.
+    int source = perm[i];
+
+    // Skip vertices with no outgoing edges.
+    if (g->rowOffset[source + 1] - g->rowOffset[source] == 0)
+    {
+      continue;
+    }
+    else
+    {
+      sourceCount--;
+    }
+
     // Initialize the data structures.
     initialize<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(
-        perm[i],
+        source,
         g->n,
         d,
         sigma,
@@ -203,7 +224,7 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
 
     // Run BC.
     vertexParallelBC<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(
-        perm[i],
+        source,
         g,
         d,
         sigma,
