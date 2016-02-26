@@ -30,8 +30,9 @@ __global__ void vertexParallelBC(
     {
       d[v] = -1;
       sigma[v] = 0.0;
-      delta[v] = 0.0;
     }
+
+    delta[v] = 0.0;
     p[v].count = 0;
   }
 
@@ -246,7 +247,7 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
       printf("\n");
     }
     */
-  
+ 
     /* 
     printf("Delta:\n");
     for (int i = 0; i < g->n; ++i)
@@ -414,6 +415,7 @@ void computeBCCPU(Configuration *config, Graph *g, int *perm, float *bc)
       }
     }
 
+    /*
     printf("Root: %d\n", root);
     printf("D:\n");
     for (int i = 0; i < g->n; ++i)
@@ -426,6 +428,7 @@ void computeBCCPU(Configuration *config, Graph *g, int *perm, float *bc)
       printf("%f, ", sigma[i]);
     }
     printf("\n");
+    */
     /*
     printf("P:\n");
     for (int i = 0; i < g->n; ++i)
@@ -458,12 +461,14 @@ void computeBCCPU(Configuration *config, Graph *g, int *perm, float *bc)
       }
     }
 
+    /*
     printf("Delta:\n");
     for (int i = 0; i < g->n; ++i)
     {
       printf("%f, ", delta[i]);
     }
     printf("\n");
+    */
   }
 
   // Free the memory.
