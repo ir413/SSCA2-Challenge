@@ -18,6 +18,10 @@ __global__ void vertexParallelBC(
     plist *p,
     float *bc)
 {
+  // We use empty and level to implicitly represent the standard bfs queue.
+  __shared__ bool empty;
+  __shared__ int level;
+
   // Initialize the required data structures.
   for (int v = threadIdx.x; v < g->n; v += blockDim.x)
   {
@@ -35,10 +39,6 @@ __global__ void vertexParallelBC(
     delta[v] = 0.0;
     p[v].count = 0;
   }
-
-  // We use empty and level to implicitly represent the standard bfs queue.
-  __shared__ bool empty;
-  __shared__ int level;
 
   if (threadIdx.x == 0)
   {
@@ -150,7 +150,11 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
   int *stack;
   plist *p;
   int *pListMem;
+  int *sources;
 
+  // Compute the number of sources.
+  int maxSourceCount = 1 << config->k4Approx; 
+  
   // Allocate temporary structures in global memory.
   cudaMallocManaged(&d, g->n * sizeof(int));
   cudaMallocManaged(&sigma, g->n * sizeof(float));
@@ -158,11 +162,9 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
   cudaMallocManaged(&stack, g->n * sizeof(int));
   cudaMallocManaged(&p, g->n * sizeof(plist));
   cudaMallocManaged(&pListMem, g->m * sizeof(int));
+  cudaMallocManaged(&sources, maxSourceCount * sizeof(int));
 
-  // Compute the number of sources.
-  int sourceCount = 1 << config->k4Approx; 
-
-  // --- TMP
+   // --- TMP
   int *inDegree;
   int *numEdges;
 
@@ -191,9 +193,12 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
   cudaFree(numEdges);
   // --- TMP
 
+  // Construct the list of sources.
+  int sourceCount = 0; 
+
   for (int i = 0; i < g->n; ++i)
   {
-    if (sourceCount == 0)
+    if (sourceCount == maxSourceCount)
     {
       break;
     }
@@ -208,8 +213,14 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
     }
     else
     {
-      sourceCount--;
+      sources[sourceCount] = source;
+      sourceCount++;
     }
+  }
+
+  for (int i = 0; i < sourceCount; ++i)
+  {
+    int source = sources[i];
 
     // Run BC.
     vertexParallelBC<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(
@@ -224,6 +235,7 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
   }
 
   // Clean up.
+  cudaFree(sources);
   cudaFree(pListMem);
   cudaFree(p);
   cudaFree(stack);
