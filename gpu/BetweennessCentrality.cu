@@ -92,11 +92,11 @@ __global__ void vertexParallelBC(
       }
     }
 
+    __syncthreads();
     if (threadIdx.x == 0)
     {
       level++;
     }
-
     __syncthreads();
   }
 
@@ -106,7 +106,7 @@ __global__ void vertexParallelBC(
   while (level > 0)
   {
     __syncthreads();
-
+ 
     for (int w = threadIdx.x; w < g->n; w += blockDim.x)
     {
       if (d[w] == level)
@@ -115,12 +115,13 @@ __global__ void vertexParallelBC(
         {
           int v = p[w].list[k];
 
-          float d =  (sigma[v] / sigma[w]) * (1.0 + delta[w]);
+          float d = (sigma[v] / sigma[w]) * (1.0 + delta[w]);
           atomicAdd(&delta[v], d);
         }
       } 
     }
 
+    __syncthreads();
     if (threadIdx.x == 0)
     {
       level--;
@@ -220,42 +221,6 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
         p,
         bc);
     cudaDeviceSynchronize();
-
-    /*
-    printf("D:\n");
-    for (int i = 0; i < g->n; ++i)
-    {
-      printf("%d, ", d[i]);
-    }
-    printf("\nSigma:\n");
-    for (int i = 0; i < g->n; ++i)
-    {
-      printf("%f, ", sigma[i]);
-    }
-    printf("\n");
-    */
-
-    /*
-    printf("P:\n");
-    for (int i = 0; i < g->n; ++i)
-    {
-      printf("p[%d].count = %d\n  ", i, p[i].count);
-      for (int j = 0; j < p[i].count; ++j)
-      {
-        printf("%d, ", p[i].list[j]);
-      }
-      printf("\n");
-    }
-    */
- 
-    /* 
-    printf("Delta:\n");
-    for (int i = 0; i < g->n; ++i)
-    {
-      printf("%f, ", delta[i]);
-    }
-    printf("\n");
-    */
   }
 
   // Clean up.
@@ -415,33 +380,6 @@ void computeBCCPU(Configuration *config, Graph *g, int *perm, float *bc)
       }
     }
 
-    /*
-    printf("Root: %d\n", root);
-    printf("D:\n");
-    for (int i = 0; i < g->n; ++i)
-    {
-      printf("%d, ", d[i]);
-    }
-    printf("\nSigma:\n");
-    for (int i = 0; i < g->n; ++i)
-    {
-      printf("%f, ", sigma[i]);
-    }
-    printf("\n");
-    */
-    /*
-    printf("P:\n");
-    for (int i = 0; i < g->n; ++i)
-    {
-      printf("p[%d].count = %d\n  ", i, p[i].count);
-      for (int j = 0; j < p[i].count; ++j)
-      {
-        printf("%d, ", p[i].list[j]);
-      }
-      printf("\n");
-    }
-    */
-
     // While !empty(Stack)
     while (sPtr > 0)
     {
@@ -460,15 +398,6 @@ void computeBCCPU(Configuration *config, Graph *g, int *perm, float *bc)
         bc[w] += delta[w];
       }
     }
-
-    /*
-    printf("Delta:\n");
-    for (int i = 0; i < g->n; ++i)
-    {
-      printf("%f, ", delta[i]);
-    }
-    printf("\n");
-    */
   }
 
   // Free the memory.
