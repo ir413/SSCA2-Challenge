@@ -129,6 +129,7 @@ __global__ void vertexParallelBC(
       } 
     }
 
+    __syncthreads();
     if (threadIdx.x == 0)
     {
       level--;
@@ -141,7 +142,10 @@ __global__ void vertexParallelBC(
   // Update bc scores.
   for (int v = threadIdx.x; v < g->n; v += blockDim.x)
   {
-    atomicAdd(&bc[v], delta[v]);
+    if (v != source)
+    {
+      atomicAdd(&bc[v], delta[v]);
+    }
   }
 }
 
