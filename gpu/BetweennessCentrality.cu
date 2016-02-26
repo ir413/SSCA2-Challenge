@@ -144,28 +144,12 @@ __global__ void accumBC(
         for (int k = 0; k < p[w].count; ++k)
         {
           int v = p[w].list[k];
-       
-          atomicAdd(&delta[v], (sigma[v] / sigma[w]) * (1.0 + delta[w]));
+
+          float d =  (sigma[v] / sigma[w]) * (1.0 + delta[w]);
+          atomicAdd(&delta[v], d);
         }
       } 
-
-      __syncthreads();
-      if (w != source)
-      {
-        atomicAdd(&bc[w], delta[w]);
-      }
     }
-
-    /*
-    __syncthreads();
-    for (int v = threadIdx.x; v < g->n; v += blockDim.x)
-    {
-      if (v != source)
-      {
-        atomicAdd(&bc[v], delta[v]);
-      }
-    }
-    */
 
     if (threadIdx.x == 0)
     {
@@ -174,20 +158,13 @@ __global__ void accumBC(
     __syncthreads();
   }
 
-  /*
   __syncthreads();
 
   for (int v = threadIdx.x; v < g->n; v += blockDim.x)
   {
 
     atomicAdd(&bc[v], delta[v]);
-    
-    //if (v != source)
-    //{
-    //  atomicAdd(&bc[v], delta[v]);
-    //}
   }
-  */
 }
 
 void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
