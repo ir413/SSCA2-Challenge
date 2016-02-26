@@ -35,7 +35,7 @@ main.o: main.cu
 	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
 BetweennessCentrality.o: BetweennessCentrality.cu BetweennessCentrality.h Graph.h
-	$(NVCC) $(INC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
+	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
 Configuration.o: Configuration.cu Configuration.h
 	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
