@@ -8,32 +8,6 @@
 // Maximal number of threads per block.
 #define MAX_THREADS_PER_BLOCK 1024 
 
-__global__ void initialize(
-    int source,
-    int n,
-    int *d,
-    float *sigma,
-    float *delta,
-    plist *p)
-{
-  int idx = threadIdx.x + blockIdx.x * blockDim.x;
-
-  if (idx < n)
-  {
-    if (idx == source)
-    {
-      d[idx] = 0;
-      sigma[idx] = 1.0;
-    }
-    else
-    {
-      d[idx] = -1; 
-      sigma[idx] = 0.0;
-      delta[idx] = 0.0;
-    }
-    p[idx].count = 0;
-  }
-}
 
 __global__ void vertexParallelBC(
     int source,
@@ -44,17 +18,35 @@ __global__ void vertexParallelBC(
     plist *p,
     float *bc)
 {
+  // Initialize the required data structures.
+  for (int v = threadIdx.x; v < g->n; v += blockDim.x)
+  {
+    if (v == source)
+    {
+      d[v] = 0;
+      sigma[v] = 1.0;
+    } 
+    else
+    {
+      d[v] = -1;
+      sigma[v] = 0.0;
+      delta[v] = 0.0;
+    }
+    p[v].count = 0;
+  }
+
   // We use empty and level to implicitly represent the standard bfs queue.
   __shared__ bool empty;
+  __shared__ int level;
 
   if (threadIdx.x == 0)
   {
     empty = false;
+    level = 0;
   }
 
   __syncthreads();
 
-  int level = 0;
   // Perform BFS.
   while (!empty)
   {
@@ -99,7 +91,10 @@ __global__ void vertexParallelBC(
       }
     }
 
-    level++;
+    if (threadIdx.x == 0)
+    {
+      level++;
+    }
 
     __syncthreads();
   }
@@ -125,8 +120,10 @@ __global__ void vertexParallelBC(
       } 
     }
 
-    __syncthreads();
-    level--;
+    if (threadIdx.x == 0)
+    {
+      level--;
+    }
     __syncthreads();
   }
 
@@ -211,16 +208,6 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
     {
       sourceCount--;
     }
-
-    // Initialize the data structures.
-    initialize<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(
-        source,
-        g->n,
-        d,
-        sigma,
-        delta,
-        p);
-    cudaDeviceSynchronize();
 
     // Run BC.
     vertexParallelBC<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(
