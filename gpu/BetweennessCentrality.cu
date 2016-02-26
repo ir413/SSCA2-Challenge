@@ -111,7 +111,6 @@ __global__ void vertexParallelBC(
         }
       }
 
-      __syncthreads();
       if (threadIdx.x == 0)
       {
         level++;
@@ -140,7 +139,6 @@ __global__ void vertexParallelBC(
         } 
       }
 
-      __syncthreads();
       if (threadIdx.x == 0)
       {
         level--;
