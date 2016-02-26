@@ -35,13 +35,14 @@ __global__ void initialize(
   }
 }
 
-__global__ void vertexParallelBFS(
+__global__ void vertexParallelBC(
     int source,
     Graph *g,
     int *d,
     float *sigma,
+    float *delta,
     plist *p,
-    unsigned int *l)
+    float *bc)
 {
   // We use empty and level to implicitly represent the standard bfs queue.
   __shared__ bool empty;
@@ -55,6 +56,7 @@ __global__ void vertexParallelBFS(
 
   __syncthreads();
 
+  // Perform BFS.
   while (!empty)
   {
     __syncthreads();
@@ -108,31 +110,7 @@ __global__ void vertexParallelBFS(
 
   __syncthreads();
 
-  if (threadIdx.x == 0)
-  {
-    *l = level;
-  }
-}
-
-__global__ void accumBC(
-    int source,
-    Graph *g,
-    int *d,
-    float *sigma,
-    float *delta,
-    plist *p,
-    unsigned int l,
-    float *bc)
-{
-  __shared__ int level;
-
-  if (threadIdx.x == 0)
-  {
-    level = l;
-  }
-
-  __syncthreads();
-
+  // Accumulate bc scores.
   while (level > 0)
   {
     __syncthreads();
@@ -160,9 +138,9 @@ __global__ void accumBC(
 
   __syncthreads();
 
+  // Update bc scores.
   for (int v = threadIdx.x; v < g->n; v += blockDim.x)
   {
-
     atomicAdd(&bc[v], delta[v]);
   }
 }
@@ -176,7 +154,6 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
   int *stack;
   plist *p;
   int *pListMem;
-  unsigned int *l;
 
   // Allocate temporary structures in global memory.
   cudaMallocManaged(&d, g->n * sizeof(int));
@@ -185,7 +162,6 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
   cudaMallocManaged(&stack, g->n * sizeof(int));
   cudaMallocManaged(&p, g->n * sizeof(plist));
   cudaMallocManaged(&pListMem, g->m * sizeof(int));
-  cudaMallocManaged(&l, sizeof(unsigned int));
 
   // --- TMP
   int *inDegree;
@@ -218,10 +194,6 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
 
   for (int source = 0; source < g->n; ++source)
   {
-    *l = 0;
-
-    //printf("before %d \n", *l);
-
     // Initialize the data structures.
     initialize<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(
         source,
@@ -232,27 +204,14 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
         p);
     cudaDeviceSynchronize();
 
-    // Run BFS.
-    vertexParallelBFS<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(
-        source,
-        g,
-        d,
-        sigma,
-        p,
-        l);
-    cudaDeviceSynchronize();
-
-    //printf("after %d \n", *l);
-  
-    // Sum centrality scores.
-    accumBC<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(
+    // Run BC.
+    vertexParallelBC<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(
         source,
         g,
         d,
         sigma,
         delta,
         p,
-        *l,
         bc);
     cudaDeviceSynchronize();
 
@@ -290,7 +249,6 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
   }
 
   // Clean up.
-  cudaFree(l);
   cudaFree(pListMem);
   cudaFree(p);
   cudaFree(stack);
