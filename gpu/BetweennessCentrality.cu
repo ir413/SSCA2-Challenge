@@ -46,16 +46,15 @@ __global__ void vertexParallelBC(
 {
   // We use empty and level to implicitly represent the standard bfs queue.
   __shared__ bool empty;
-  __shared__ int level;
 
   if (threadIdx.x == 0)
   {
     empty = false;
-    level = 0;
   }
 
   __syncthreads();
 
+  int level = 0;
   // Perform BFS.
   while (!empty)
   {
@@ -100,10 +99,7 @@ __global__ void vertexParallelBC(
       }
     }
 
-    if (threadIdx.x == 0)
-    {
-      level++;
-    }
+    level++;
 
     __syncthreads();
   }
@@ -130,10 +126,7 @@ __global__ void vertexParallelBC(
     }
 
     __syncthreads();
-    if (threadIdx.x == 0)
-    {
-      level--;
-    }
+    level--;
     __syncthreads();
   }
 
@@ -196,11 +189,11 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
   cudaFree(numEdges);
   // --- TMP
 
-  for (int source = 0; source < g->n; ++source)
+  for (int i = 0; i < g->n; ++i)
   {
     // Initialize the data structures.
     initialize<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(
-        source,
+        perm[i],
         g->n,
         d,
         sigma,
@@ -210,7 +203,7 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
 
     // Run BC.
     vertexParallelBC<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(
-        source,
+        perm[i],
         g,
         d,
         sigma,
@@ -219,6 +212,7 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
         bc);
     cudaDeviceSynchronize();
 
+    /*
     printf("D:\n");
     for (int i = 0; i < g->n; ++i)
     {
@@ -230,6 +224,7 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
       printf("%f, ", sigma[i]);
     }
     printf("\n");
+    */
 
     /*
     printf("P:\n");
@@ -243,13 +238,15 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
       printf("\n");
     }
     */
-   
+  
+    /* 
     printf("Delta:\n");
     for (int i = 0; i < g->n; ++i)
     {
       printf("%f, ", delta[i]);
     }
     printf("\n");
+    */
   }
 
   // Clean up.
