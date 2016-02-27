@@ -7,6 +7,6 @@ do
   echo "SCALE $scale"
   for i in 0 1 2 3 4
   do
-    ./../gpu/SSCA2 $scale 2>&1 | awk '/^Time taken for Kernel 4/ { print $7 }'
+    ./../../gpu/SSCA2 $scale 2>&1 | awk '/^Time taken for Kernel 4/ { print $7 }'
   done
 done

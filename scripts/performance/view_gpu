@@ -1,0 +1,6 @@
+#!/bin/bash
+
+echo "GPU core clock (kHz)"
+cat /sys/kernel/debug/clock/gbus/rate
+echo "GPU memory clock (kHz)"
+cat /sys/kernel/debug/clock/emc/rate

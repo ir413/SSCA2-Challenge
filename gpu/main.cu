@@ -58,8 +58,8 @@ int main(int argc, char **argv)
 
   // Allocate memory required for the graph.
   Graph *graph;
-  //allocateHost(&config, &graph);
-  allocateManaged(&config, &graph);
+  allocateHost(&config, &graph);
+  //allocateManaged(&config, &graph);
 
   // Construct the graph from the tuples.
   constructGraph(&tuples, graph);
@@ -89,16 +89,16 @@ int main(int argc, char **argv)
   float *bc;
   int *perm;
 
-  /*
-  bc = (double *) calloc(config.n, sizeof(double));
+  bc = (float *) calloc(config.n, sizeof(double));
   assert(bc != NULL);
   perm = (int *) malloc(config.n * sizeof(int));
   assert(perm != NULL);
-  */
 
+  /*
   cudaMallocManaged(&bc, config.n * sizeof(float));
   cudaMemset(bc, 0.0, config.n);
   cudaMallocManaged(&perm, config.n * sizeof(int));
+  */
 
   // Permute the vertices.
   generatePermutation(config.n, perm);
@@ -107,8 +107,8 @@ int main(int argc, char **argv)
   elapsedTime = getSeconds();
   
   // Compute the betweenes centrality metric.
-  //computeBCCPU(&config, graph, perm, bc);
-  computeBCGPU(&config, graph, perm, bc);
+  computeBCCPU(&config, graph, perm, bc);
+  //computeBCGPU(&config, graph, perm, bc);
   
   elapsedTime = getSeconds() - elapsedTime;
   fprintf(stderr, "Time taken for Kernel 4 is %9.6lf sec.\n", elapsedTime);
@@ -133,14 +133,14 @@ int main(int argc, char **argv)
   }
 
   // Clean up.
-  /*
   free(perm);
   free(bc);
   destroyHost(&graph);
-  */
 
+  /*
   cudaFree(perm);
   cudaFree(bc);
   destroyManaged(&graph);
+  */
 }
 
