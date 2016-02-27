@@ -1,6 +1,6 @@
 # Set the C compiler and flags.
 CC = gcc
-CFLAGS = -O2 #-fopenmp
+CFLAGS = -O3
 
 # Set flags for spring2.0.
 AR = ar
@@ -12,7 +12,7 @@ INC = -Isprng2.0/include
 
 # Set CUDA compiler and flags.
 NVCC = nvcc
-NVCCFLAGS =
+NVCCFLAGS = -O3
 GENCODE_FLAGS =
 
 # Set linker and flags.
