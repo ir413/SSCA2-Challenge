@@ -156,7 +156,9 @@ __global__ void vertexParallelBC(
     {
       if (v != source)
       {
-        atomicAdd(&bc[v], delta[v]);
+        // No need for an atomic operation as each element will be updated by
+        // exactly one thread.
+        bc[v] += delta[v];
       }
     }
 
@@ -171,7 +173,6 @@ __global__ void vertexParallelBC(
 
 void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
 {
-
   double elapsedTime = getSeconds();
   
   // Declare the auxilary structures.
