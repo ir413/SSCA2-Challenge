@@ -113,6 +113,11 @@ int main(int argc, char **argv)
   elapsedTime = getSeconds() - elapsedTime;
   fprintf(stderr, "Time taken for Kernel 4 is %9.6lf sec.\n", elapsedTime);
 
+  fprintf(
+      stderr,
+      "TEPS score for Kernel 4 is %lf\n",
+      7 * config.n * ((long) (1 << config.k4Approx)) / elapsedTime);
+
   /* ---------------------------------------- */
   /* Validation                               */
   /* ---------------------------------------- */
