@@ -8,7 +8,7 @@
 // Number of thread blocks.
 #define BLOCKS_COUNT 1
 // Maximal number of threads per block.
-#define MAX_THREADS_PER_BLOCK 1024 
+#define MAX_THREADS_PER_BLOCK 512
 
 
 __global__ void vertexParallelBC(
@@ -113,6 +113,7 @@ __global__ void vertexParallelBC(
         }
       }
 
+      __syncthreads();
       if (threadIdx.x == 0)
       {
         level++;
@@ -159,6 +160,7 @@ __global__ void vertexParallelBC(
       }
     }
 
+    __syncthreads();
     if (threadIdx.x == 0)
     {
       sourceIdx++;
