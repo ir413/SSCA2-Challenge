@@ -5,3 +5,4 @@ cpu/SSCA2v2.2/SSCA2
 gpu/SSCA2
 gpu/tests
 data/
+scripts/parse_time_scales.py
