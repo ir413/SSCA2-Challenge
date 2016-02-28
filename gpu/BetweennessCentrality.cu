@@ -6,7 +6,7 @@
 #include "BetweennessCentrality.h"
 
 // Number of thread blocks.
-#define BLOCKS_COUNT 4
+#define BLOCKS_COUNT 2
 // Maximal number of threads per block.
 #define MAX_THREADS_PER_BLOCK 768 
 
@@ -179,9 +179,9 @@ __global__ void vertexParallelBC(
     {
       if (v != source)
       {
-        // No need for an atomic operation as each element will be updated by
-        // exactly one thread.
-        bc[v] += delta[v];
+        // Need to perform an atomic update as we may have conflicting reads
+        // and writes by threads from different blocks. 
+        atomicAdd(&bc[v], delta[v]);
       }
     }
 
