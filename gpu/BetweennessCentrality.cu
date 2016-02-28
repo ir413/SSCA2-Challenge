@@ -6,9 +6,9 @@
 #include "BetweennessCentrality.h"
 
 // Number of thread blocks.
-#define BLOCKS_COUNT 1
+#define BLOCKS_COUNT 4
 // Maximal number of threads per block.
-#define MAX_THREADS_PER_BLOCK 768
+#define MAX_THREADS_PER_BLOCK 768 
 
 
 __global__ void vertexParallelBC(
@@ -29,11 +29,13 @@ __global__ void vertexParallelBC(
   __shared__ int sourceIdxEnd;
   __shared__ int sourceIdx;
   __shared__ int source;
+
   // Used to acces the portions of the global storage.
   __shared__ int *d;
   __shared__ float *sigma;
   __shared__ float *delta;
   __shared__ plist *p;
+
   // Used to represent the standard bfs queue, implicitly.
   __shared__ bool empty;
   __shared__ int level;
@@ -44,6 +46,7 @@ __global__ void vertexParallelBC(
     sourceIdx = blockIdx.x * sourcesPerBlock;
     int nextEndIdx = sourceIdx + sourcesPerBlock; 
     sourceIdxEnd = (sourceCount < nextEndIdx) ? sourceCount : nextEndIdx;
+
     // Compute the global structure offests.
     d = ds + blockIdx.x * dSize;
     sigma = sigmas + blockIdx.x * sigmaDeltaSize;
@@ -236,19 +239,27 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
   int sourcesPerBlock = maxSourceCount / BLOCKS_COUNT;
 
   // Compute the sizes of the structures used by each block.
+  /*
   int dSize = g->n * sizeof(int);
   int sigmaDeltaSize = g->n * sizeof(float);
   int pSize = g->n * sizeof(plist); 
+  int pListMemSize = g->m * sizeof(int);
+  */
+  int dSize = g->n;
+  int sigmaDeltaSize = g->n;
+  int pSize = g->n; 
+  int pListMemSize = g->m;
+ 
 
   printf("dSize: %d, sigmaDeltaSize: %d, pSize: %d\n", dSize, sigmaDeltaSize, pSize);
   printf("sourceCount: %d, sourcesPerBlock: %d\n", sourceCount, sourcesPerBlock);
 
   // Allocate temporary structures in global memory.
-  cudaMallocManaged(&d, dSize * BLOCKS_COUNT);
-  cudaMallocManaged(&sigma, sigmaDeltaSize * BLOCKS_COUNT);
-  cudaMallocManaged(&delta, sigmaDeltaSize * BLOCKS_COUNT);
-  cudaMallocManaged(&p, pSize * BLOCKS_COUNT);
-  cudaMallocManaged(&pListMem, g->m * sizeof(int) * BLOCKS_COUNT);
+  cudaMallocManaged(&d, dSize * sizeof(int) * BLOCKS_COUNT);
+  cudaMallocManaged(&sigma, sigmaDeltaSize * sizeof(float) * BLOCKS_COUNT);
+  cudaMallocManaged(&delta, sigmaDeltaSize * sizeof(float) * BLOCKS_COUNT);
+  cudaMallocManaged(&p, pSize * sizeof(plist) * BLOCKS_COUNT);
+  cudaMallocManaged(&pListMem, pListMemSize * sizeof(int) * BLOCKS_COUNT);
 
    // --- TMP
   int *inDegree;
@@ -269,10 +280,17 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
     numEdges[i] = numEdges[i - 1] + inDegree[i - 1];
   }
 
-  for (int i = 0; i < g->n; ++i)
+  for (int j = 0; j < BLOCKS_COUNT; ++j)
   {
-    p[i].list = pListMem + numEdges[i];
-    p[i].count = 0;
+    int pOffset = j * g->n; //pSize; // <- bug
+    int pListMemOffset = j * g->m;
+    //printf("pOffset: %d pListMemOffset: %d\n", pOffset, pListMemOffset);
+    
+    for (int i = 0; i < g->n; ++i)
+    {
+      p[pOffset + i].list = pListMem + (pListMemOffset + numEdges[i]);
+      p[pOffset + i].count = 0;
+    }
   }
 
   cudaFree(inDegree);
