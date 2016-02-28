@@ -17,14 +17,14 @@ __global__ void vertexParallelBC(
     int sourceCount,
     Graph *g,
     int *ds,
-    int dSize,
     float *sigmas,
     float *deltas,
-    int sigmaDeltaSize,
     plist *ps,
-    int pSize,
     float *bc)
 {
+  // Number of nodes in the graph.
+  __shared__ int n;
+
   // Used to determine the set of sources to explore.
   __shared__ int sourceIdxEnd;
   __shared__ int sourceIdx;
@@ -42,16 +42,19 @@ __global__ void vertexParallelBC(
 
   if (threadIdx.x == 0)
   {
+    // Set the number of nodes.
+    n = g->n;
+
     // Compute the set of sources to explore.
     sourceIdx = blockIdx.x * sourcesPerBlock;
     int nextEndIdx = sourceIdx + sourcesPerBlock; 
     sourceIdxEnd = (sourceCount < nextEndIdx) ? sourceCount : nextEndIdx;
 
     // Compute the global structure offests.
-    d = ds + blockIdx.x * dSize;
-    sigma = sigmas + blockIdx.x * sigmaDeltaSize;
-    delta = deltas + blockIdx.x * sigmaDeltaSize;
-    p = ps + blockIdx.x * pSize;  
+    d = ds + blockIdx.x * n;
+    sigma = sigmas + blockIdx.x * n;
+    delta = deltas + blockIdx.x * n;
+    p = ps + blockIdx.x * n;
   }
 
   __syncthreads();
@@ -66,7 +69,7 @@ __global__ void vertexParallelBC(
     __syncthreads();
    
     // Initialize the required data structures.
-    for (int v = threadIdx.x; v < g->n; v += blockDim.x)
+    for (int v = threadIdx.x; v < n; v += blockDim.x)
     {
       if (v == source)
       {
@@ -99,7 +102,7 @@ __global__ void vertexParallelBC(
       __syncthreads();
 
       // TODO: unroll the first iteration.
-      for (int v = threadIdx.x; v < g->n; v += blockDim.x)
+      for (int v = threadIdx.x; v < n; v += blockDim.x)
       {
         // Check if vs neighbours are to be visited i.e. if v is in the queue.
         if (d[v] == level)
@@ -150,7 +153,7 @@ __global__ void vertexParallelBC(
     {
       __syncthreads();
    
-      for (int w = threadIdx.x; w < g->n; w += blockDim.x)
+      for (int w = threadIdx.x; w < n; w += blockDim.x)
       {
         if (d[w] == level)
         {
@@ -175,7 +178,7 @@ __global__ void vertexParallelBC(
     __syncthreads();
 
     // Update bc scores.
-    for (int v = threadIdx.x; v < g->n; v += blockDim.x)
+    for (int v = threadIdx.x; v < n; v += blockDim.x)
     {
       if (v != source)
       {
@@ -238,30 +241,14 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
   // Determine the number of sourecs to explore per block.
   int sourcesPerBlock = maxSourceCount / BLOCKS_COUNT;
 
-  // Compute the sizes of the structures used by each block.
-  /*
-  int dSize = g->n * sizeof(int);
-  int sigmaDeltaSize = g->n * sizeof(float);
-  int pSize = g->n * sizeof(plist); 
-  int pListMemSize = g->m * sizeof(int);
-  */
-  int dSize = g->n;
-  int sigmaDeltaSize = g->n;
-  int pSize = g->n; 
-  int pListMemSize = g->m;
- 
-
-  printf("dSize: %d, sigmaDeltaSize: %d, pSize: %d\n", dSize, sigmaDeltaSize, pSize);
-  printf("sourceCount: %d, sourcesPerBlock: %d\n", sourceCount, sourcesPerBlock);
-
   // Allocate temporary structures in global memory.
-  cudaMallocManaged(&d, dSize * sizeof(int) * BLOCKS_COUNT);
-  cudaMallocManaged(&sigma, sigmaDeltaSize * sizeof(float) * BLOCKS_COUNT);
-  cudaMallocManaged(&delta, sigmaDeltaSize * sizeof(float) * BLOCKS_COUNT);
-  cudaMallocManaged(&p, pSize * sizeof(plist) * BLOCKS_COUNT);
-  cudaMallocManaged(&pListMem, pListMemSize * sizeof(int) * BLOCKS_COUNT);
+  cudaMallocManaged(&d, g->n * sizeof(int) * BLOCKS_COUNT);
+  cudaMallocManaged(&sigma, g->n * sizeof(float) * BLOCKS_COUNT);
+  cudaMallocManaged(&delta, g->n * sizeof(float) * BLOCKS_COUNT);
+  cudaMallocManaged(&p, g->n * sizeof(plist) * BLOCKS_COUNT);
+  cudaMallocManaged(&pListMem, g->m * sizeof(int) * BLOCKS_COUNT);
 
-   // --- TMP
+  // Compute the predecessor list sizes.
   int *inDegree;
   int *numEdges;
 
@@ -280,22 +267,21 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
     numEdges[i] = numEdges[i - 1] + inDegree[i - 1];
   }
 
+  // Set predecessor list pointers.
   for (int j = 0; j < BLOCKS_COUNT; ++j)
   {
-    int pOffset = j * g->n; //pSize; // <- bug
+    int pOffset = j * g->n;
     int pListMemOffset = j * g->m;
-    //printf("pOffset: %d pListMemOffset: %d\n", pOffset, pListMemOffset);
     
     for (int i = 0; i < g->n; ++i)
     {
-      p[pOffset + i].list = pListMem + (pListMemOffset + numEdges[i]);
+      p[pOffset + i].list = pListMem + pListMemOffset + numEdges[i];
       p[pOffset + i].count = 0;
     }
   }
 
   cudaFree(inDegree);
   cudaFree(numEdges);
-  // --- TMP
 
   // Run BC.
   vertexParallelBC<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(
@@ -304,12 +290,9 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
       sourceCount,
       g,
       d,
-      dSize,
       sigma,
       delta,
-      sigmaDeltaSize,
       p,
-      pSize,
       bc);
   cudaDeviceSynchronize();
 
