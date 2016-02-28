@@ -71,16 +71,6 @@ int main(int argc, char **argv)
   destroy(&tuples);
 
   /* ---------------------------------------- */
-  /* Kernel 2 - Find max edge weight          */
-  /* ---------------------------------------- */
-  // TODO
-
-  /* ---------------------------------------- */
-  /* Kernel 3 - Graph Extraction              */
-  /* ---------------------------------------- */
-  // TODO
-
-  /* ---------------------------------------- */
   /* Kernel 4 - Betweenness Centrality        */
   /* ---------------------------------------- */
   fprintf(stderr, "Kernel 4: Computing Betweenness Centrality...\n");
