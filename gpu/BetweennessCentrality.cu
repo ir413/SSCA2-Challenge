@@ -1,8 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include "Timer.h"
-
 #include "BetweennessCentrality.h"
 
 // Number of thread blocks.
@@ -199,8 +197,6 @@ __global__ void vertexParallelBC(
 
 void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
 {
-  double elapsedTime = getSeconds();
-  
   // Declare the auxilary structures.
   int *d;
   float *sigma;
