@@ -13,29 +13,47 @@
 
 __global__ void vertexParallelBC(
     int *sources,
+    int sourcesPerBlock,
     int sourceCount,
     Graph *g,
-    int *d,
-    float *sigma,
-    float *delta,
-    plist *p,
+    int *ds,
+    int dSize,
+    float *sigmas,
+    float *deltas,
+    int sigmaDeltaSize,
+    plist *ps,
+    int pSize,
     float *bc)
 {
-  // Used to determine the next source to explore.
+  // Used to determine the set of sources to explore.
+  __shared__ int sourceIdxEnd;
   __shared__ int sourceIdx;
   __shared__ int source;
+  // Used to acces the portions of the global storage.
+  __shared__ int *d;
+  __shared__ float *sigma;
+  __shared__ float *delta;
+  __shared__ plist *p;
   // Used to represent the standard bfs queue, implicitly.
   __shared__ bool empty;
   __shared__ int level;
 
   if (threadIdx.x == 0)
   {
-    sourceIdx = 0;
+    // Compute the set of sources to explore.
+    sourceIdx = blockIdx.x * sourcesPerBlock;
+    int nextEndIdx = sourceIdx + sourcesPerBlock; 
+    sourceIdxEnd = (sourceCount < nextEndIdx) ? sourceCount : nextEndIdx;
+    // Compute the global structure offests.
+    d = ds + blockIdx.x * dSize;
+    sigma = sigmas + blockIdx.x * sigmaDeltaSize;
+    delta = deltas + blockIdx.x * sigmaDeltaSize;
+    p = ps + blockIdx.x * pSize;  
   }
 
   __syncthreads();
 
-  while (sourceIdx < sourceCount)
+  while (sourceIdx < sourceIdxEnd)
   {
     __syncthreads();
     if (threadIdx.x == 0)
@@ -181,26 +199,56 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
   int *d;
   float *sigma;
   float *delta;
-  int *stack;
   plist *p;
   int *pListMem;
   int *sources;
 
   // Compute the number of sources.
   int maxSourceCount = 1 << config->k4Approx; 
-  
-  // Allocate temporary structures in global memory.
-  cudaMallocManaged(&d, g->n * sizeof(int));
-  cudaMallocManaged(&sigma, g->n * sizeof(float));
-  cudaMallocManaged(&delta, g->n * sizeof(float));
-  cudaMallocManaged(&stack, g->n * sizeof(int));
-  cudaMallocManaged(&p, g->n * sizeof(plist));
-  cudaMallocManaged(&pListMem, g->m * sizeof(int));
   cudaMallocManaged(&sources, maxSourceCount * sizeof(int));
 
-  elapsedTime = getSeconds() - elapsedTime;
-  fprintf(stderr, "Kernel 4: Work memory allocation: %9.6lf sec.\n", elapsedTime);
-  elapsedTime = getSeconds();
+  // Construct the list of sources.
+  int sourceCount = 0; 
+
+  for (int i = 0; i < g->n; ++i)
+  {
+    if (sourceCount == maxSourceCount)
+    {
+      break;
+    }
+
+    // Apply the permutation.
+    int source = perm[i];
+
+    // Skip vertices with no outgoing edges.
+    if (g->rowOffset[source + 1] - g->rowOffset[source] == 0)
+    {
+      continue;
+    }
+    else
+    {
+      sources[sourceCount] = source;
+      sourceCount++;
+    }
+  }
+
+  // Determine the number of sourecs to explore per block.
+  int sourcesPerBlock = maxSourceCount / BLOCKS_COUNT;
+
+  // Compute the sizes of the structures used by each block.
+  int dSize = g->n * sizeof(int);
+  int sigmaDeltaSize = g->n * sizeof(float);
+  int pSize = g->n * sizeof(plist); 
+
+  printf("dSize: %d, sigmaDeltaSize: %d, pSize: %d\n", dSize, sigmaDeltaSize, pSize);
+  printf("sourceCount: %d, sourcesPerBlock: %d\n", sourceCount, sourcesPerBlock);
+
+  // Allocate temporary structures in global memory.
+  cudaMallocManaged(&d, dSize * BLOCKS_COUNT);
+  cudaMallocManaged(&sigma, sigmaDeltaSize * BLOCKS_COUNT);
+  cudaMallocManaged(&delta, sigmaDeltaSize * BLOCKS_COUNT);
+  cudaMallocManaged(&p, pSize * BLOCKS_COUNT);
+  cudaMallocManaged(&pListMem, g->m * sizeof(int) * BLOCKS_COUNT);
 
    // --- TMP
   int *inDegree;
@@ -231,63 +279,29 @@ void computeBCGPU(Configuration *config, Graph *g, int *perm, float *bc)
   cudaFree(numEdges);
   // --- TMP
 
-  elapsedTime = getSeconds() - elapsedTime;
-  fprintf(stderr, "Kernel 4: Predecessor initialization: %9.6lf sec.\n", elapsedTime);
-  elapsedTime = getSeconds();
-
-  // Construct the list of sources.
-  int sourceCount = 0; 
-
-  for (int i = 0; i < g->n; ++i)
-  {
-    if (sourceCount == maxSourceCount)
-    {
-      break;
-    }
-
-    // Apply the permutation.
-    int source = perm[i];
-
-    // Skip vertices with no outgoing edges.
-    if (g->rowOffset[source + 1] - g->rowOffset[source] == 0)
-    {
-      continue;
-    }
-    else
-    {
-      sources[sourceCount] = source;
-      sourceCount++;
-    }
-  }
-
-  elapsedTime = getSeconds() - elapsedTime;
-  fprintf(stderr, "Kernel 4: Sources construction: %9.6lf sec.\n", elapsedTime);
-  elapsedTime = getSeconds();
-  
   // Run BC.
   vertexParallelBC<<<BLOCKS_COUNT, MAX_THREADS_PER_BLOCK>>>(
       sources,
+      sourcesPerBlock,
       sourceCount,
       g,
       d,
+      dSize,
       sigma,
       delta,
+      sigmaDeltaSize,
       p,
+      pSize,
       bc);
   cudaDeviceSynchronize();
 
-  elapsedTime = getSeconds() - elapsedTime;
-  fprintf(stderr, "Kernel 4: BC Kernel: %9.6lf sec.\n", elapsedTime);
-  elapsedTime = getSeconds();
-
   // Clean up.
-  cudaFree(sources);
   cudaFree(pListMem);
   cudaFree(p);
-  cudaFree(stack);
   cudaFree(delta);
   cudaFree(sigma);
   cudaFree(d);
+  cudaFree(sources);
 }
 
 void computeBCCPU(Configuration *config, Graph *g, int *perm, float *bc)
