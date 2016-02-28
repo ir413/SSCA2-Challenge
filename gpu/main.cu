@@ -103,7 +103,7 @@ int main(int argc, char **argv)
   }
   else
   {
-    bc = (float *) calloc(config.n, sizeof(double)); // float!
+    bc = (float *) calloc(config.n, sizeof(float));
     assert(bc != NULL);
     perm = (int *) malloc(config.n * sizeof(int));
     assert(perm != NULL);
