@@ -14,10 +14,18 @@
  */
 int main(int argc, char **argv)
 {
-  if (argc != 2)
+  if (argc != 3)
   {
-    fprintf(stderr, "Usage: ./SSCA2 <SCALE>\n");
+    fprintf(stderr, "Usage: ./SSCA2 <SCALE> <GPU>\n");
     return EXIT_FAILURE;
+  }
+
+  // TODO: Refactor.
+  // Determine whether to run CPU or GPU version.
+  bool runGPU = false;
+  if (atoi(argv[2]) == 1)
+  {
+    runGPU = true; 
   }
 
   double elapsedTime;
@@ -58,8 +66,16 @@ int main(int argc, char **argv)
 
   // Allocate memory required for the graph.
   Graph *graph;
-  //allocateHost(&config, &graph);
-  allocateManaged(&config, &graph);
+
+  // Allocate in unified memory if running on the GPU.
+  if (runGPU)
+  {
+    allocateManaged(&config, &graph);
+  }
+  else
+  {
+    allocateHost(&config, &graph);
+  }
 
   // Construct the graph from the tuples.
   constructGraph(&tuples, graph);
@@ -79,16 +95,19 @@ int main(int argc, char **argv)
   float *bc;
   int *perm;
 
-  /*
-  bc = (float *) calloc(config.n, sizeof(double));
-  assert(bc != NULL);
-  perm = (int *) malloc(config.n * sizeof(int));
-  assert(perm != NULL);
-  */
-
-  cudaMallocManaged(&bc, config.n * sizeof(float));
-  cudaMemset(bc, 0.0, config.n);
-  cudaMallocManaged(&perm, config.n * sizeof(int));
+  if (runGPU)
+  {
+    cudaMallocManaged(&bc, config.n * sizeof(float));
+    cudaMemset(bc, 0.0, config.n);
+    cudaMallocManaged(&perm, config.n * sizeof(int));
+  }
+  else
+  {
+    bc = (float *) calloc(config.n, sizeof(double)); // float!
+    assert(bc != NULL);
+    perm = (int *) malloc(config.n * sizeof(int));
+    assert(perm != NULL);
+  }
 
   // Permute the vertices.
   generatePermutation(config.n, perm);
@@ -97,8 +116,14 @@ int main(int argc, char **argv)
   elapsedTime = getSeconds();
   
   // Compute the betweenes centrality metric.
-  //computeBCCPU(&config, graph, perm, bc);
-  computeBCGPU(&config, graph, perm, bc);
+  if (runGPU)
+  {
+    computeBCGPU(&config, graph, perm, bc);
+  }
+  else
+  {
+    computeBCCPU(&config, graph, perm, bc);
+  }
   
   elapsedTime = getSeconds() - elapsedTime;
   fprintf(stderr, "Time taken for Kernel 4 is %9.6lf sec.\n", elapsedTime);
@@ -123,14 +148,17 @@ int main(int argc, char **argv)
   }
 
   // Clean up.
-  /*
-  free(perm);
-  free(bc);
-  destroyHost(&graph);
-  */
-
-  cudaFree(perm);
-  cudaFree(bc);
-  destroyManaged(&graph);
+  if (runGPU)
+  {
+    cudaFree(perm);
+    cudaFree(bc);
+    destroyManaged(&graph);
+  }
+  else
+  {
+    free(perm);
+    free(bc);
+    destroyHost(&graph);
+  }
 }
 
